@@ -1,0 +1,334 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Apple System Colors - Refined Palette */
+  --color-slate-50: #fbfbfd;
+  /* Apple Light Background */
+  --color-slate-100: #f5f5f7;
+  /* Apple Secondary Background */
+  --color-slate-200: #e5e5ea;
+  --color-slate-300: #d1d1d6;
+  --color-slate-400: #aeaeb2;
+  --color-slate-500: #8e8e93;
+  --color-slate-600: #636366;
+  --color-slate-700: #48484a;
+  --color-slate-800: #2c2c2e;
+  --color-slate-900: #1c1c1e;
+  /* Apple Dark Background */
+  --color-slate-950: #000000;
+
+  /* Accent Colors - Apple Human Interface Guidelines */
+  --color-blue-500: #007aff;
+  --color-blue-600: #0071e3;
+  --color-green-500: #34c759;
+  --color-green-600: #28cd41;
+  --color-orange-500: #ff9500;
+  --color-red-500: #ff3b30;
+  --color-purple-500: #af52de;
+  --color-indigo-500: #5856d6;
+
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  --animate-fade-in: fadeIn 0.5s var(--ease-apple);
+  --animate-slide-up: slideUp 0.6s var(--ease-spring);
+  --animate-slide-down: slideDown 0.4s var(--ease-spring);
+  --animate-scale-in: scaleIn 0.4s var(--ease-spring);
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-tab-enter: tabEnter 0.5s var(--ease-spring);
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-15px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes tabEnter {
+    0% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.99);
+      filter: blur(8px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+}
+
+@layer base {
+  :root {
+    --bg-primary: var(--color-slate-50);
+    --text-primary: var(--color-slate-900);
+  }
+
+  .dark {
+    --bg-primary: var(--color-slate-950);
+    --text-primary: var(--color-slate-50);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    letter-spacing: -0.015em;
+    /* Apple-style tight tracking */
+  }
+}
+
+/* Custom Scrollbar - Minimalist */
+::-webkit-scrollbar {
+  width: 0px;
+  /* Hidden by default for cleaner look, or very thin */
+  background: transparent;
+}
+
+/* Glassmorphism Utilities */
+@layer utilities {
+  .smooth-transition {
+    @apply transition-all duration-300 ease-apple;
+  }
+
+  .glass-panel {
+    @apply bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl;
+  }
+
+  .glass-sidebar {
+    @apply bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-2xl border-r border-slate-200/50 dark:border-slate-800/50;
+  }
+
+  .glass-header {
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-50;
+  }
+
+  .glass-card {
+    @apply bg-white/60 dark:bg-slate-800/40 backdrop-blur-lg border border-white/30 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+}
+
+/* Base transitions */
+a,
+button,
+input,
+select,
+textarea {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition-duration: 300ms;
+}
+
+/* React Quill Dark Mode Overrides */
+.dark .ql-editor {
+  color: #e2e8f0;
+  /* slate-200 */
+}
+
+.dark .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  /* slate-400 */
+  font-style: normal;
+}
+
+.dark .ql-toolbar .ql-stroke {
+  stroke: #cbd5e1;
+  /* slate-300 */
+}
+
+.dark .ql-toolbar .ql-fill {
+  fill: #cbd5e1;
+  /* slate-300 */
+}
+
+.dark .ql-toolbar .ql-picker {
+  color: #cbd5e1;
+  /* slate-300 */
+}
+
+/* Custom Quill Font Sizes */
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="10px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="10px"]::before {
+  content: '10px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before {
+  content: '12px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before {
+  content: '14px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before {
+  content: '16px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before {
+  content: '18px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before {
+  content: '20px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24px"]::before {
+  content: '24px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="30px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="30px"]::before {
+  content: '30px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="36px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="36px"]::before {
+  content: '36px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="48px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="48px"]::before {
+  content: '48px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="60px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="60px"]::before {
+  content: '60px';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="72px"]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value="72px"]::before {
+  content: '72px';
+}
+
+/* Custom Quill Font Families */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Arial"]::before {
+  content: 'Arial';
+  font-family: 'Arial';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Times New Roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Times New Roman"]::before {
+  content: 'Times New Roman';
+  font-family: 'Times New Roman';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Courier New"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Courier New"]::before {
+  content: 'Courier New';
+  font-family: 'Courier New';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Verdana"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Verdana"]::before {
+  content: 'Verdana';
+  font-family: 'Verdana';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Georgia"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Georgia"]::before {
+  content: 'Georgia';
+  font-family: 'Georgia';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Trebuchet MS"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Trebuchet MS"]::before {
+  content: 'Trebuchet MS';
+  font-family: 'Trebuchet MS';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Garamond"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Garamond"]::before {
+  content: 'Garamond';
+  font-family: 'Garamond';
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Impact"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Impact"]::before {
+  content: 'Impact';
+  font-family: 'Impact';
+}
+
+/* Dark Mode for Quill Picker Dropdowns */
+.dark .ql-snow .ql-picker-options {
+  background-color: #1c1c1e;
+  border-color: #2c2c2e;
+}
+
+.dark .ql-snow .ql-picker-item {
+  color: #e2e8f0;
+}
+
+.dark .ql-snow .ql-picker-item:hover {
+  background-color: #2c2c2e;
+  color: #ffffff;
+}
+
+.dark .ql-snow .ql-picker-item.ql-selected {
+  color: #007aff;
+}
