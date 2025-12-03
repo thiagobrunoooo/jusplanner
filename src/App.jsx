@@ -30,7 +30,8 @@ import {
   Sparkles,
   Database,
   History, // Import History icon
-  Menu
+  Menu,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { ThemeTabs } from '@/components/ui/theme-tabs';
 import {
@@ -99,6 +100,7 @@ import MaterialsView from './components/MaterialsView';
 import Assistant from './components/Assistant';
 import VadeMecum from './components/VadeMecum';
 import TimeMachine from './components/TimeMachine'; // Import TimeMachine
+import Settings from './components/Settings'; // Import Settings
 import { ICON_MAP } from './lib/icons';
 
 import { useProfileData, useDailyHistory, useProgressData, useStudyTime, useNotes, useMaterials, useSubjects } from './hooks/useStudyData';
@@ -205,7 +207,7 @@ const Header = ({ togglePomodoro, userStats, setOpen, setShowTimeMachine }) => {
           >
             <Menu size={24} />
           </button>
-          <h2 className="hidden md:block text-base md:text-lg font-semibold text-slate-900 dark:text-white">Bom dia Dr. Thiago</h2>
+          <h2 className="hidden md:block text-base md:text-lg font-semibold text-slate-900 dark:text-white">Bom dia Dr. {userStats.name || 'Thiago'}</h2>
         </div>
 
         <div className="flex items-center gap-2 md:gap-5">
@@ -248,10 +250,14 @@ const Header = ({ togglePomodoro, userStats, setOpen, setShowTimeMachine }) => {
 
           <button
             onClick={() => setShowBackup(true)}
-            className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm hover:scale-105 transition-transform cursor-pointer"
+            className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm hover:scale-105 transition-transform cursor-pointer overflow-hidden"
             title="Perfil e Dados"
           >
-            {user?.email ? user.email[0].toUpperCase() : 'T'}
+            {userStats.avatar ? (
+              <img src={userStats.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              user?.email ? user.email[0].toUpperCase() : 'T'
+            )}
           </button>
         </div>
       </header>
@@ -1864,7 +1870,9 @@ const DEFAULT_STATS = {
   xp: 0,
   level: 1,
   streak: 0,
-  lastActivity: null
+  lastActivity: null,
+  name: 'Thiago', // Default name
+  avatar: null
 };
 
 function App() {
@@ -1945,7 +1953,7 @@ function App() {
 
   const [dailyHistory, setDailyHistory] = useDailyHistory({});
 
-  const [userStats, setUserStats] = useProfileData(DEFAULT_STATS);
+  const [userStats, setUserStats, saveProfile] = useProfileData(DEFAULT_STATS);
 
   // StudyTime (Now Synced!)
   const [studyTime, setStudyTime, logSession] = useStudyTime({});
@@ -2115,6 +2123,7 @@ function App() {
     { id: 'vademecum', icon: <Book size={20} />, label: 'Vade Mecum' },
     { id: 'subjects', icon: <BookOpen size={20} />, label: 'Edital & Matérias' },
     { id: 'questions', icon: <Brain size={20} />, label: 'Questões' },
+    { id: 'settings', icon: <SettingsIcon size={20} />, label: 'Configurações' },
   ];
 
   return (
@@ -2123,8 +2132,8 @@ function App() {
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-2.5 px-2 py-5">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 shadow-md">
-                J
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <span className={cn("font-bold text-xl text-slate-900 dark:text-white tracking-tight transition-opacity duration-200", open ? "opacity-100" : "opacity-0 hidden")}>
                 JusPlanner
@@ -2206,6 +2215,42 @@ function App() {
                 </div>
               )
             }
+            {activeTab === 'settings' && (
+              <Settings
+                userName={userStats.name || 'Thiago'}
+                setUserName={(name) => setUserStats(prev => ({ ...prev, name, updated_at: new Date().toISOString() }))}
+                userAvatar={userStats.avatar}
+                setUserAvatar={(avatar) => setUserStats(prev => ({ ...prev, avatar, updated_at: new Date().toISOString() }))}
+                onManualSave={async () => {
+                  try {
+                    // Direct update for reliability
+                    const { data: { user: currentUser } } = await supabase.auth.getUser();
+                    if (!currentUser) throw new Error('Usuário não autenticado');
+
+                    const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({
+                        avatar: userStats.avatar,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('id', currentUser.id);
+
+                    if (updateError) throw updateError;
+
+                    alert('Foto de perfil salva com sucesso!');
+                  } catch (e) {
+                    console.error('Erro ao salvar:', e);
+                    alert('Erro ao salvar: ' + e.message);
+                  }
+                }}
+                setShowBackup={() => setShowBackup(true)}
+                onReset={() => {
+                  if (window.confirm('TEM CERTEZA? Isso apagará TODO o seu progresso, notas e histórico para sempre.')) {
+                    if (window.resetAppData) window.resetAppData();
+                  }
+                }}
+              />
+            )}
           </div>
         </main>
       </div>

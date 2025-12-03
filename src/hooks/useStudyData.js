@@ -61,12 +61,16 @@ export const useProfileData = (initialStats) => {
 
                 if (remoteData) {
                     setStats(prev => {
-                        // Merge logic: if remote is newer, take remote. Else keep local.
-                        // For profiles, we usually trust the server more on initial load unless we have offline changes.
-                        // Simple merge for now:
-                        const merged = { ...prev, ...remoteData };
-                        localStorage.setItem(`userStats_${user.id}`, JSON.stringify(merged));
-                        return merged;
+                        // Smart Merge: Only overwrite if remote is newer
+                        const remoteDate = new Date(remoteData.updated_at || 0);
+                        const localDate = new Date(prev.updated_at || 0);
+
+                        if (remoteDate > localDate) {
+                            const merged = { ...prev, ...remoteData };
+                            localStorage.setItem(`userStats_${user.id}`, JSON.stringify(merged));
+                            return merged;
+                        }
+                        return prev;
                     });
                 } else {
                     // If no remote profile, create one from local
@@ -95,14 +99,17 @@ export const useProfileData = (initialStats) => {
 
     const saveToSupabase = async (newStats) => {
         if (!user) return;
+        console.log("Saving profile to Supabase:", newStats);
         try {
-            await supabase.from('profiles').upsert({
+            const { error } = await supabase.from('profiles').upsert({
                 id: user.id,
                 ...newStats,
                 updated_at: new Date().toISOString(),
-                last_activity: new Date().toISOString()
+                last_activity: new Date().toISOString().split('T')[0]
             });
-        } catch (err) { console.error(err); }
+            if (error) throw error;
+            console.log("Profile saved successfully!");
+        } catch (err) { console.error("Error saving profile:", err); }
     };
 
     const debouncedSave = useDebouncedSave(saveToSupabase);
@@ -114,7 +121,7 @@ export const useProfileData = (initialStats) => {
         }
     }, [stats, user, loading]);
 
-    return [stats, setStats];
+    return [stats, setStats, saveToSupabase];
 };
 
 // --- 2. DAILY HISTORY ---
