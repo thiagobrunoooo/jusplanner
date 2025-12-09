@@ -61,17 +61,27 @@ export const DesktopSidebar = ({
     return (
         <motion.div
             className={cn(
-                "h-screen px-3 py-6 hidden md:flex md:flex-col glass-sidebar w-[280px] flex-shrink-0",
+                "h-screen px-3 py-6 hidden md:flex md:flex-col glass-sidebar w-[280px] flex-shrink-0 relative",
                 className
             )}
             animate={{
                 width: animate ? (open ? "280px" : "80px") : "280px",
             }}
+            transition={{
+                duration: 0.3,
+                ease: [0.25, 0.1, 0.25, 1],
+            }}
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}
             {...props}
         >
-            {children}
+            {/* Decorative gradient orb */}
+            <div className="absolute top-20 -left-20 w-40 h-40 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-20 -right-10 w-32 h-32 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col h-full">
+                {children}
+            </div>
         </motion.div>
     );
 };
@@ -86,27 +96,42 @@ export const MobileSidebar = ({
         <>
             <AnimatePresence>
                 {open && (
-                    <motion.div
-                        initial={{ x: "-100%", opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: "-100%", opacity: 0 }}
-                        transition={{
-                            duration: 0.3,
-                            ease: "easeInOut",
-                        }}
-                        className={cn(
-                            "fixed h-full w-full inset-0 glass-sidebar p-10 z-[100] flex flex-col justify-between md:hidden",
-                            className
-                        )}
-                    >
-                        <div
-                            className="absolute right-10 top-10 z-50 text-slate-800 dark:text-slate-200 cursor-pointer"
-                            onClick={() => setOpen(!open)}
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[99] md:hidden"
+                            onClick={() => setOpen(false)}
+                        />
+                        {/* Sidebar */}
+                        <motion.div
+                            initial={{ x: "-100%", opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: "-100%", opacity: 0 }}
+                            transition={{
+                                type: "spring",
+                                damping: 25,
+                                stiffness: 300,
+                            }}
+                            className={cn(
+                                "fixed h-full w-[85%] max-w-[320px] inset-y-0 left-0 glass-modal p-8 z-[100] flex flex-col justify-between md:hidden shadow-2xl",
+                                className
+                            )}
                         >
-                            <X />
-                        </div>
-                        {children}
-                    </motion.div>
+                            <motion.button
+                                whileHover={{ scale: 1.1, rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="absolute right-4 top-4 z-50 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                                onClick={() => setOpen(!open)}
+                            >
+                                <X size={20} />
+                            </motion.button>
+                            {children}
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </>
@@ -122,35 +147,59 @@ export const SidebarLink = ({
 }) => {
     const { open, animate } = useSidebar();
     return (
-        <button
+        <motion.button
             onClick={onClick}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
             className={cn(
-                "flex items-center justify-start gap-3 group/sidebar py-3 px-3 rounded-xl w-full text-left transition-all duration-200",
+                "flex items-center justify-start gap-3 group/sidebar py-3 px-3 rounded-xl w-full text-left transition-all duration-200 relative overflow-hidden",
                 active
-                    ? "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold backdrop-blur-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100",
+                    ? "bg-gradient-to-r from-blue-500/15 to-indigo-500/10 dark:from-blue-500/25 dark:to-indigo-500/15 text-blue-600 dark:text-blue-400 font-semibold"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-slate-100",
                 className
             )}
             {...props}
         >
-            {React.cloneElement(link.icon, {
-                className: cn(
-                    "h-5 w-5 flex-shrink-0 transition-colors",
-                    active ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500 group-hover/sidebar:text-slate-700 dark:group-hover/sidebar:text-slate-300"
-                )
-            })}
+            {/* Active indicator bar */}
+            {active && (
+                <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-r-full"
+                    initial={{ opacity: 0, scaleY: 0 }}
+                    animate={{ opacity: 1, scaleY: 1 }}
+                    transition={{ duration: 0.2 }}
+                />
+            )}
+            
+            <div className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
+                active 
+                    ? "bg-blue-500/20 dark:bg-blue-400/20 shadow-sm" 
+                    : "group-hover/sidebar:bg-slate-200/50 dark:group-hover/sidebar:bg-slate-700/50"
+            )}>
+                {React.cloneElement(link.icon, {
+                    className: cn(
+                        "h-[18px] w-[18px] flex-shrink-0 transition-all duration-300",
+                        active 
+                            ? "text-blue-600 dark:text-blue-400" 
+                            : "text-slate-400 dark:text-slate-500 group-hover/sidebar:text-slate-700 dark:group-hover/sidebar:text-slate-300"
+                    )
+                })}
+            </div>
+            
             <motion.span
                 animate={{
                     display: animate ? (open ? "inline-block" : "none") : "inline-block",
                     opacity: animate ? (open ? 1 : 0) : 1,
                 }}
+                transition={{ duration: 0.2 }}
                 className={cn(
-                    "text-sm font-medium group-hover/sidebar:translate-x-0.5 transition duration-150 whitespace-pre inline-block !p-0 !m-0",
+                    "text-sm font-medium whitespace-pre inline-block !p-0 !m-0",
                     active ? "text-blue-700 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"
                 )}
             >
                 {link.label}
             </motion.span>
-        </button>
+        </motion.button>
     );
 };

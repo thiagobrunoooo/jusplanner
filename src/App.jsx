@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar, SidebarBody, SidebarLink } from './components/ui/sidebar';
 import {
   BookOpen,
@@ -33,6 +34,8 @@ import {
   Menu,
   Settings as SettingsIcon
 } from 'lucide-react';
+import LoginScreen from './components/LoginScreen';
+import { useAuth } from './contexts/AuthContext';
 import { ThemeTabs } from '@/components/ui/theme-tabs';
 import {
   LineChart,
@@ -190,73 +193,108 @@ const INITIAL_STATS = {
 
 
 
+
 import BackupManager from './components/BackupManager';
-import { useAuth } from './contexts/AuthContext';
 
 const Header = ({ togglePomodoro, userStats, setOpen, setShowTimeMachine }) => {
   const [showBackup, setShowBackup] = useState(false);
   const { user } = useAuth();
 
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
   return (
     <>
-      <header className="h-16 glass-header flex items-center justify-between px-4 md:px-8">
+      <header className="h-16 glass-header flex items-center justify-between px-4 md:px-8 animate-slide-down">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setOpen(true)}
-            className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
           >
             <Menu size={24} />
           </button>
-          <h2 className="hidden md:block text-base md:text-lg font-semibold text-slate-900 dark:text-white">Bom dia Dr. {userStats.name || 'Thiago'}</h2>
+          <h2 className="hidden md:block text-base md:text-lg font-semibold">
+            <span className="text-slate-600 dark:text-slate-400">{getGreeting()}</span>{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent font-bold">
+              Dr. {userStats.name || 'Thiago'}
+            </span>
+          </h2>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-5">
+        <div className="flex items-center gap-2 md:gap-4">
           <ThemeTabs />
 
           <button
             onClick={() => setShowTimeMachine(true)}
-            className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/30 border-2 border-transparent hover:border-indigo-200 dark:hover:border-indigo-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:scale-105 transition-all cursor-pointer"
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 border border-indigo-200/50 dark:border-indigo-700/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:scale-110 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 cursor-pointer"
             title="Máquina do Tempo"
           >
             <History size={18} />
           </button>
 
-          <div className="hidden md:flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-full border border-orange-100 dark:border-orange-900/30">
-            <Flame className="text-orange-500" size={16} />
-            <span className="font-bold text-orange-700 dark:text-orange-400 text-sm">{userStats.streak} Dias</span>
+          {/* Animated Streak Badge */}
+          <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 px-4 py-2 rounded-xl border border-orange-200/50 dark:border-orange-800/50 shadow-sm hover:shadow-md hover:shadow-orange-500/10 transition-all duration-300 group">
+            <div className="relative">
+              <Flame className="text-orange-500 group-hover:animate-wiggle transition-all" size={18} />
+              <div className="absolute inset-0 text-orange-400 animate-ping opacity-30">
+                <Flame size={18} />
+              </div>
+            </div>
+            <span className="font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent text-sm">
+              {userStats.streak} Dias
+            </span>
           </div>
 
+          {/* Pomodoro Button */}
           <button
             onClick={togglePomodoro}
-            className="w-10 h-10 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 flex items-center justify-center transition-all shadow-sm border border-red-100 dark:border-red-900/30 group hover:scale-105"
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 dark:from-red-600 dark:to-rose-700 hover:from-red-600 hover:to-rose-700 dark:hover:from-red-500 dark:hover:to-rose-600 flex items-center justify-center transition-all duration-300 shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 group hover:scale-105 active:scale-95"
             title="Pomodoro Timer"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="w-5 h-5 text-red-500 transition-transform"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 10c0 6-4.48 10-10 10s-10-4-10-10c0-5.52 4.48-10 10-10 5.52 0 10 4.48 10 10z" fill="#ef4444" stroke="none" />
-              <path d="M12 2a3 3 0 0 0-3 3" stroke="#166534" />
-              <path d="M12 2a3 3 0 0 1 3 3" stroke="#166534" />
-              <path d="M12 2v4" stroke="#166534" />
-              <path d="M16 5c-1 0-2 1-2 1" stroke="#166534" />
-            </svg>
+            <div className="relative">
+              {/* Tomato body */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5">
+                {/* Gradient definitions */}
+                <defs>
+                  <linearGradient id="tomatoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#fff" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {/* Main tomato body */}
+                <ellipse cx="12" cy="13" rx="9" ry="8" fill="white" />
+                {/* Highlight */}
+                <ellipse cx="9" cy="11" rx="3" ry="2" fill="url(#tomatoGrad)" opacity="0.6" />
+                {/* Stem */}
+                <path d="M12 5 L12 7" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Leaves */}
+                <path d="M12 6 Q8 4 7 6" stroke="#22c55e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                <path d="M12 6 Q16 4 17 6" stroke="#22c55e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                {/* Center leaf */}
+                <path d="M12 5 Q12 3 14 2" stroke="#16a34a" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              </svg>
+              {/* Glow pulse */}
+              <div className="absolute inset-0 bg-white/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </button>
 
+          {/* Profile Button */}
           <button
             onClick={() => setShowBackup(true)}
-            className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm hover:scale-105 transition-transform cursor-pointer overflow-hidden"
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 border border-blue-200/50 dark:border-blue-700/50 shadow-sm hover:shadow-lg hover:shadow-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden"
             title="Perfil e Dados"
           >
             {userStats.avatar ? (
-              <img src={userStats.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={userStats.avatar} alt="Avatar" className="w-full h-full object-cover rounded-xl" />
             ) : (
-              user?.email ? user.email[0].toUpperCase() : 'T'
+              <span className="bg-gradient-to-br from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                {user?.email ? user.email[0].toUpperCase() : 'T'}
+              </span>
             )}
           </button>
         </div>
@@ -469,187 +507,443 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     });
   }, [dailyHistory, progress]);
 
+  // Animation variants for stagger effect
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.05
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+        mass: 0.8
+      }
+    }
+  };
+
+  const metricCardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 120,
+        damping: 12
+      }
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* SECTION 1: PROGRESS OVERVIEW (New Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <motion.div
+      className="space-y-8"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      {/* SECTION 1: PROGRESS OVERVIEW - Premium Cards */}
+      <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={containerVariants}>
         {/* Card 1: Dia Atual */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-900 dark:to-slate-900 rounded-3xl p-1 shadow-lg shadow-blue-200/50 dark:shadow-none group hover:scale-[1.01] smooth-transition animate-slide-up" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-white dark:bg-slate-950/90 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{
+            scale: 1.02,
+            y: -4,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.98 }}
+          className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 dark:from-blue-600 dark:via-indigo-600 dark:to-purple-700 rounded-3xl p-[2px] shadow-xl shadow-blue-500/20 dark:shadow-indigo-500/10 group cursor-pointer overflow-hidden"
+        >
+          {/* Animated gradient overlay */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            initial={{ x: "-100%" }}
+            whileHover={{ x: "100%" }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+          />
+
+          <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden backdrop-blur-sm">
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
-                  <Calendar size={20} />
-                </div>
+              <div className="flex items-center gap-3 mb-3">
+                <motion.div
+                  className="p-2.5 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-xl text-blue-600 dark:text-blue-400 shadow-sm"
+                  whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Calendar size={22} />
+                </motion.div>
                 <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Dia Atual</h3>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-slate-800 dark:text-white tracking-tight">
+                <motion.span
+                  className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.2 }}
+                >
                   {stats.currentDay}
-                </span>
-                <span className="text-xl text-slate-400 font-medium">/{stats.totalDays}</span>
+                </motion.span>
+                <span className="text-2xl text-slate-400 font-medium">/{stats.totalDays}</span>
               </div>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="h-2 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${Math.round((stats.currentDay / stats.totalDays) * 100)}%` }}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-2.5 w-36 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.round((stats.currentDay / stats.totalDays) * 100)}%` }}
+                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.3 }}
                   />
                 </div>
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                <motion.span
+                  className="text-sm font-bold text-blue-600 dark:text-blue-400"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
                   {Math.round((stats.currentDay / stats.totalDays) * 100)}%
-                </span>
+                </motion.span>
               </div>
             </div>
 
-            {/* Decorative Background Element */}
-            <div className="absolute -right-6 -bottom-6 opacity-5 dark:opacity-10 pointer-events-none">
-              <Calendar size={140} />
+            {/* Decorative Background Element - Static for performance */}
+            <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
+              <Calendar size={160} strokeWidth={1} />
             </div>
+
+            {/* Glow effect - Static for performance */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/20 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Card 2: Tópicos Estudados */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 dark:from-emerald-900 dark:to-slate-900 rounded-3xl p-1 shadow-lg shadow-emerald-200/50 dark:shadow-none group hover:scale-[1.01] smooth-transition animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-white dark:bg-slate-950/90 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{
+            scale: 1.02,
+            y: -4,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.98 }}
+          className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 dark:from-emerald-600 dark:via-teal-600 dark:to-cyan-700 rounded-3xl p-[2px] shadow-xl shadow-emerald-500/20 dark:shadow-teal-500/10 group cursor-pointer overflow-hidden"
+        >
+          {/* Animated gradient overlay */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            initial={{ x: "-100%" }}
+            whileHover={{ x: "100%" }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+          />
+
+          <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden backdrop-blur-sm">
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
-                  <BookOpen size={20} />
-                </div>
+              <div className="flex items-center gap-3 mb-3">
+                <motion.div
+                  className="p-2.5 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-xl text-emerald-600 dark:text-emerald-400 shadow-sm"
+                  whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <BookOpen size={22} />
+                </motion.div>
                 <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Tópicos Estudados</h3>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-slate-800 dark:text-white tracking-tight">
+                <motion.span
+                  className="text-6xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent tracking-tight"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.3 }}
+                >
                   {stats.topicsStudied}
-                </span>
-                <span className="text-xl text-slate-400 font-medium">/{stats.totalTopics}</span>
+                </motion.span>
+                <span className="text-2xl text-slate-400 font-medium">/{stats.totalTopics}</span>
               </div>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="h-2 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${stats.planProgress}%` }}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-2.5 w-36 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.planProgress}%` }}
+                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
                   />
                 </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <motion.span
+                  className="text-sm font-bold text-emerald-600 dark:text-emerald-400"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
                   {stats.planProgress}%
-                </span>
+                </motion.span>
               </div>
             </div>
 
-            {/* Decorative Background Element */}
-            <div className="absolute -right-6 -bottom-6 opacity-5 dark:opacity-10 pointer-events-none">
-              <BookOpen size={140} />
+            {/* Decorative Background Element - Static for performance */}
+            <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
+              <BookOpen size={160} strokeWidth={1} />
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* SECTION 2: KEY METRICS (Restored & Enhanced) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Metric 0: Tempo Líquido (New) */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md smooth-transition group animate-slide-up" style={{ animationDelay: '0.25s' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                <Clock size={22} />
+            {/* Glow effect - Static for performance */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-emerald-500/20 dark:bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* SECTION 2: KEY METRICS - Glassmorphism Cards */}
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-4 gap-5"
+        variants={containerVariants}
+      >
+        {/* Metric 0: Tempo Líquido */}
+        <motion.div
+          variants={metricCardVariants}
+          whileHover={{
+            scale: 1.03,
+            y: -6,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.97 }}
+          className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-400/5 dark:to-indigo-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="p-2.5 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-xl text-blue-600 dark:text-blue-400"
+                  whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Clock size={22} />
+                </motion.div>
+                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Tempo Líquido</h3>
               </div>
-              <h3 className="text-slate-600 dark:text-slate-300 font-bold">Tempo Líquido</h3>
+            </div>
+            <div>
+              <motion.p
+                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+              >
+                {stats.formattedTime}
+              </motion.p>
+              <p className="text-xs text-slate-400 mt-1">Total acumulado</p>
             </div>
           </div>
-          <div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">{stats.formattedTime}</p>
-            <p className="text-xs text-slate-400 mt-1">Total acumulado</p>
-          </div>
-        </div>
+        </motion.div>
 
         {/* Metric 1: Questões */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md smooth-transition group animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                <Brain size={22} />
+        <motion.div
+          variants={metricCardVariants}
+          whileHover={{
+            scale: 1.03,
+            y: -6,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.97 }}
+          className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-400/5 dark:to-purple-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="p-2.5 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 rounded-xl text-indigo-600 dark:text-indigo-400"
+                  whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Brain size={22} />
+                </motion.div>
+                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Questões</h3>
               </div>
-              <h3 className="text-slate-600 dark:text-slate-300 font-bold">Questões Totais</h3>
+            </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <motion.p
+                  className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.35, type: "spring", stiffness: 150 }}
+                >
+                  {stats.totalQuestions}
+                </motion.p>
+                <p className="text-xs text-slate-400 mt-1">Respondidas</p>
+              </div>
+              <div className="h-10 w-20">
+                {/* Animated Sparkline */}
+                <div className="flex items-end justify-between h-full gap-0.5">
+                  {[40, 60, 45, 70, 50, 80].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-full bg-gradient-to-t from-indigo-500 to-purple-400 dark:from-indigo-600 dark:to-purple-500 rounded-t-sm"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: `${h}%`, opacity: 0.8 }}
+                      whileHover={{ opacity: 1, scale: 1.1 }}
+                      transition={{
+                        delay: 0.4 + (i * 0.08),
+                        duration: 0.6,
+                        type: "spring",
+                        stiffness: 100
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">{stats.totalQuestions}</p>
-              <p className="text-xs text-slate-400 mt-1">Respondidas até agora</p>
-            </div>
-            <div className="h-10 w-20">
-              {/* Mini Sparkline Placeholder */}
-              <div className="flex items-end justify-between h-full gap-1">
-                {[40, 60, 45, 70, 50, 80].map((h, i) => (
-                  <div key={i} className="w-full bg-indigo-100 dark:bg-indigo-900/30 rounded-t-sm" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        </motion.div>
 
         {/* Metric 2: Taxa de Acerto */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md smooth-transition group animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
-                <Target size={22} />
+        <motion.div
+          variants={metricCardVariants}
+          whileHover={{
+            scale: 1.03,
+            y: -6,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.97 }}
+          className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-amber-500/10 dark:from-orange-400/5 dark:to-amber-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className={cn(
+                    "p-2.5 rounded-xl",
+                    stats.accuracy >= 70
+                      ? "bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 text-emerald-600 dark:text-emerald-400"
+                      : "bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40 text-orange-600 dark:text-orange-400"
+                  )}
+                  whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Target size={22} />
+                </motion.div>
+                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Taxa de Acerto</h3>
               </div>
-              <h3 className="text-slate-600 dark:text-slate-300 font-bold">Taxa de Acerto</h3>
+            </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <motion.p
+                  className={cn(
+                    "text-3xl font-bold bg-clip-text text-transparent",
+                    stats.accuracy >= 70
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400"
+                      : "bg-gradient-to-r from-orange-500 to-amber-500 dark:from-orange-400 dark:to-amber-400"
+                  )}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 150 }}
+                >
+                  {stats.accuracy}%
+                </motion.p>
+                <p className="text-xs text-slate-400 mt-1">Média geral</p>
+              </div>
+              <div className="relative w-14 h-14 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="28" cy="28" r="22" stroke="currentColor" strokeWidth="5" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                  <motion.circle
+                    cx="28" cy="28" r="22"
+                    stroke="url(#accuracyGradient)"
+                    strokeWidth="5"
+                    fill="transparent"
+                    strokeDasharray={138.2}
+                    strokeLinecap="round"
+                    initial={{ strokeDashoffset: 138.2 }}
+                    animate={{ strokeDashoffset: 138.2 - (138.2 * stats.accuracy) / 100 }}
+                    transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1], delay: 0.5 }}
+                  />
+                  <defs>
+                    <linearGradient id="accuracyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={stats.accuracy >= 70 ? "#10b981" : "#f97316"} />
+                      <stop offset="100%" stopColor={stats.accuracy >= 70 ? "#14b8a6" : "#f59e0b"} />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
             </div>
           </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className={cn(
-                "text-3xl font-bold",
-                stats.accuracy >= 70 ? "text-green-600 dark:text-green-400" : "text-orange-500 dark:text-orange-400"
-              )}>{stats.accuracy}%</p>
-              <p className="text-xs text-slate-400 mt-1">Média de desempenho</p>
-            </div>
-            <div className="relative w-12 h-12 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100 dark:text-slate-800" />
-                <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={125.6} strokeDashoffset={125.6 - (125.6 * stats.accuracy) / 100} className={stats.accuracy >= 70 ? "text-green-500" : "text-orange-500"} strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        </motion.div>
 
         {/* Metric 3: Próxima Meta */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md smooth-transition group animate-slide-up" style={{ animationDelay: '0.5s' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform">
-                <Trophy size={22} />
+        <motion.div
+          variants={metricCardVariants}
+          whileHover={{
+            scale: 1.03,
+            y: -6,
+            transition: { type: "spring", stiffness: 400, damping: 17 }
+          }}
+          whileTap={{ scale: 0.97 }}
+          className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 dark:from-yellow-400/5 dark:to-orange-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="p-2.5 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/40 dark:to-orange-900/40 rounded-xl text-yellow-600 dark:text-yellow-500"
+                  whileHover={{ rotate: [0, -15, 15, 0], scale: 1.2 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Trophy size={22} />
+                </motion.div>
+                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Próxima Meta</h3>
               </div>
-              <h3 className="text-slate-600 dark:text-slate-300 font-bold">Próxima Meta</h3>
+            </div>
+            <div>
+              <motion.p
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1"
+                title={stats.nextGoal.title}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.45 }}
+              >
+                {stats.nextGoal.title}
+              </motion.p>
+              <div className="mt-3">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="font-medium text-slate-500 dark:text-slate-400">Progresso</span>
+                  <motion.span
+                    className="font-bold bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-400 bg-clip-text text-transparent"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    {stats.nextGoal.progress}%
+                  </motion.span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800/80 h-2.5 rounded-full overflow-hidden shadow-inner">
+                  <motion.div
+                    className="bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.nextGoal.progress}%` }}
+                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.5 }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <p className="text-base font-bold text-slate-800 dark:text-slate-100 line-clamp-1" title={stats.nextGoal.title}>
-              {stats.nextGoal.title}
-            </p>
-            <div className="mt-4">
-              <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-bold text-slate-500 dark:text-slate-400">Progresso</span>
-                <span className="font-bold text-yellow-600 dark:text-yellow-400">{stats.nextGoal.progress}%</span>
-              </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-yellow-400 h-full rounded-full animate-pulse transition-all duration-1000 ease-out"
-                  style={{ width: `${stats.nextGoal.progress}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm smooth-transition animate-slide-up" style={{ animationDelay: '0.6s' }}>
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-6">Desempenho Semanal (Real)</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-6">Desempenho Semanal</h3>
           <div className="h-64 w-full min-h-[250px]">
             {weeklyChartData.every(d => d.questoes === 0) ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
@@ -659,30 +953,61 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyChartData}>
+                <ComposedChart data={weeklyChartData}>
                   <defs>
-                    <linearGradient id="colorUv" x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorLine" x1="0" y1="0" x2="1" y2="0">
                       <stop offset="0%" stopColor="#6366f1" />
                       <stop offset="100%" stopColor="#a855f7" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-800" />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    allowDecimals={false}
+                    width={40}
+                  />
                   <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ color: '#1e293b' }}
-                    cursor={{ stroke: '#6366f1', strokeWidth: 1, strokeDasharray: '3 3' }}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: 'none',
+                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)',
+                      backgroundColor: 'rgba(255,255,255,0.95)'
+                    }}
+                    itemStyle={{ color: '#1e293b', fontWeight: 600 }}
+                    labelStyle={{ color: '#64748b', fontWeight: 500, marginBottom: 4 }}
+                    cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '5 5' }}
+                  />
+                  <Bar
+                    dataKey="questoes"
+                    fill="url(#colorArea)"
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   />
                   <Line
                     type="monotone"
                     dataKey="questoes"
-                    stroke="url(#colorUv)"
-                    strokeWidth={4}
-                    dot={{ r: 6, fill: '#1e1b4b', strokeWidth: 3, stroke: '#8b5cf6' }}
-                    activeDot={{ r: 8, fill: '#8b5cf6', stroke: '#fff' }}
+                    stroke="url(#colorLine)"
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: '#fff', strokeWidth: 2, stroke: '#8b5cf6' }}
+                    activeDot={{ r: 7, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
+                    animationDuration={1000}
+                    animationEasing="ease-out"
                   />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -724,7 +1049,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -961,11 +1286,17 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
             const SubjectIcon = parentSubject ? (ICON_MAP[parentSubject.icon] || BookOpen) : BookOpen;
 
             return (
-              <div
+              <motion.div
                 key={topic.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 className={cn(
-                  "bg-white dark:bg-slate-900 rounded-2xl border smooth-transition overflow-hidden group animate-slide-up",
-                  isExpanded ? "border-blue-200 dark:border-blue-800 shadow-lg ring-1 ring-blue-100 dark:ring-blue-900" : "border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm"
+                  "bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden group",
+                  isExpanded
+                    ? "border-blue-200 dark:border-blue-800 shadow-xl ring-2 ring-blue-100 dark:ring-blue-900/50"
+                    : "border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md"
                 )}
               >
                 <div
@@ -996,154 +1327,186 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                       <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{topic.title}</h3>
                     </div>
                   </div>
-                  <ChevronDown
-                    className={cn("text-slate-300 dark:text-slate-600 transition-transform duration-300", isExpanded && "rotate-180 text-blue-500 dark:text-blue-400")}
-                  />
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "text-slate-300 dark:text-slate-600",
+                        isExpanded && "text-blue-500 dark:text-blue-400"
+                      )}
+                    />
+                  </motion.div>
                 </div>
 
-                {isExpanded && (
-                  <div className="px-6 pb-6 pt-0 border-t border-slate-50 dark:border-slate-800 animate-in slide-in-from-top-2 duration-200">
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{
+                        height: "auto",
+                        opacity: 1,
+                        transition: {
+                          height: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+                          opacity: { duration: 0.25, delay: 0.1 }
+                        }
+                      }}
+                      exit={{
+                        height: 0,
+                        opacity: 0,
+                        transition: {
+                          height: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] },
+                          opacity: { duration: 0.15 }
+                        }
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6 pt-4 border-t border-slate-100 dark:border-slate-800/50">
 
-                    {/* Subtopics List */}
-                    <div className="mt-6 mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <MoreVertical size={14} />
-                        Pontos a Estudar
-                      </h4>
-                      <ul className="space-y-2">
-                        {topic.subtopics.map((sub, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-                            <span>{sub}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                        {/* Subtopics List */}
+                        <div className="mt-6 mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <MoreVertical size={14} />
+                            Pontos a Estudar
+                          </h4>
+                          <ul className="space-y-2">
+                            {topic.subtopics.map((sub, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+                                <span>{sub}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <button
-                        onClick={() => toggleCheck(topic.id, 'read')}
-                        className={cn(
-                          "flex items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden",
-                          topicProgress.read
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-700 dark:text-green-400"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                          topicProgress.read ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
-                        )}>
-                          {topicProgress.read ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-                        </div>
-                        <div className="text-left">
-                          <span className="block font-bold text-sm">Teoria</span>
-                          <span className="text-xs opacity-70">Ler PDF/Livro</span>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => toggleCheck(topic.id, 'reviewed')}
-                        className={cn(
-                          "flex items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden",
-                          topicProgress.reviewed
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-700 dark:text-green-400"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                          topicProgress.reviewed ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
-                        )}>
-                          {topicProgress.reviewed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-                        </div>
-                        <div className="text-left">
-                          <span className="block font-bold text-sm">Revisão</span>
-                          <span className="text-xs opacity-70">Mapa Mental/Resumo</span>
-                        </div>
-                      </button>
-
-                      {/* Question Metrics Section */}
-                      <div className="col-span-1 md:col-span-1 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <button
+                            onClick={() => toggleCheck(topic.id, 'read')}
+                            className={cn(
+                              "flex items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden",
+                              topicProgress.read
+                                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-700 dark:text-green-400"
+                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                            )}
+                          >
                             <div className={cn(
                               "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                              (topicProgress.questions?.completed || topicProgress.questions === true) ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                              topicProgress.read ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
                             )}>
-                              {(topicProgress.questions?.completed || topicProgress.questions === true) ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                              {topicProgress.read ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                             </div>
-                            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Questões</span>
-                          </div>
-                          <button
-                            onClick={() => toggleCheck(topic.id, 'questions')}
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
-                          >
-                            {(topicProgress.questions?.completed || topicProgress.questions === true) ? 'Reabrir' : 'Concluir'}
+                            <div className="text-left">
+                              <span className="block font-bold text-sm">Teoria</span>
+                              <span className="text-xs opacity-70">Ler PDF/Livro</span>
+                            </div>
                           </button>
+
+                          <button
+                            onClick={() => toggleCheck(topic.id, 'reviewed')}
+                            className={cn(
+                              "flex items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden",
+                              topicProgress.reviewed
+                                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-700 dark:text-green-400"
+                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                              topicProgress.reviewed ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                            )}>
+                              {topicProgress.reviewed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                            </div>
+                            <div className="text-left">
+                              <span className="block font-bold text-sm">Revisão</span>
+                              <span className="text-xs opacity-70">Mapa Mental/Resumo</span>
+                            </div>
+                          </button>
+
+                          {/* Question Metrics Section */}
+                          <div className="col-span-1 md:col-span-1 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                                  (topicProgress.questions?.completed || topicProgress.questions === true) ? "bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-400" : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                                )}>
+                                  {(topicProgress.questions?.completed || topicProgress.questions === true) ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                                </div>
+                                <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Questões</span>
+                              </div>
+                              <button
+                                onClick={() => toggleCheck(topic.id, 'questions')}
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+                              >
+                                {(topicProgress.questions?.completed || topicProgress.questions === true) ? 'Reabrir' : 'Concluir'}
+                              </button>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Feitas</label>
+                                  <DebouncedInput
+                                    id={`questions-total-${topic.id}`}
+                                    type="number"
+                                    min="0"
+                                    className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-blue-400 outline-none"
+                                    value={topicProgress.questions?.total || ''}
+                                    onCommit={(val) => updateQuestionMetrics(topic.id, 'total', val)}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Acertos</label>
+                                  <DebouncedInput
+                                    id={`questions-correct-${topic.id}`}
+                                    type="number"
+                                    min="0"
+                                    className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-green-600 dark:text-green-400 focus:border-green-400 outline-none"
+                                    value={topicProgress.questions?.correct || ''}
+                                    onCommit={(val) => updateQuestionMetrics(topic.id, 'correct', val)}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  Erros: <span className="font-bold text-red-500 dark:text-red-400">
+                                    {(topicProgress.questions?.total || 0) - (topicProgress.questions?.correct || 0)}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                  <span className={cn(
+                                    "font-bold",
+                                    ((topicProgress.questions?.correct || 0) / (topicProgress.questions?.total || 1)) >= 0.7 ? "text-green-600 dark:text-green-400" : "text-orange-500 dark:text-orange-400"
+                                  )}>
+                                    {topicProgress.questions?.total > 0
+                                      ? Math.round(((topicProgress.questions?.correct || 0) / topicProgress.questions?.total) * 100)
+                                      : 0}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Feitas</label>
-                              <DebouncedInput
-                                id={`questions-total-${topic.id}`}
-                                type="number"
-                                min="0"
-                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-blue-400 outline-none"
-                                value={topicProgress.questions?.total || ''}
-                                onCommit={(val) => updateQuestionMetrics(topic.id, 'total', val)}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Acertos</label>
-                              <DebouncedInput
-                                id={`questions-correct-${topic.id}`}
-                                type="number"
-                                min="0"
-                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-green-600 dark:text-green-400 focus:border-green-400 outline-none"
-                                value={topicProgress.questions?.correct || ''}
-                                onCommit={(val) => updateQuestionMetrics(topic.id, 'correct', val)}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              Erros: <span className="font-bold text-red-500 dark:text-red-400">
-                                {(topicProgress.questions?.total || 0) - (topicProgress.questions?.correct || 0)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              <span className={cn(
-                                "font-bold",
-                                ((topicProgress.questions?.correct || 0) / (topicProgress.questions?.total || 1)) >= 0.7 ? "text-green-600 dark:text-green-400" : "text-orange-500 dark:text-orange-400"
-                              )}>
-                                {topicProgress.questions?.total > 0
-                                  ? Math.round(((topicProgress.questions?.correct || 0) / topicProgress.questions?.total) * 100)
-                                  : 0}%
-                              </span>
-                            </div>
-                          </div>
+                        <div className="mt-6">
+                          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            Anotações & Dúvidas
+                          </label>
+                          <textarea
+                            value={getNoteContent(topic.id)}
+                            onChange={(e) => handleNoteChange(topic.id, e.target.value)}
+                            placeholder="Registre aqui seus pontos de atenção..."
+                            className="w-full h-24 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-200 resize-none"
+                          />
                         </div>
                       </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                        Anotações & Dúvidas
-                      </label>
-                      <textarea
-                        value={getNoteContent(topic.id)}
-                        onChange={(e) => handleNoteChange(topic.id, e.target.value)}
-                        placeholder="Registre aqui seus pontos de atenção..."
-                        className="w-full h-24 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-200 resize-none"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })
         )}
@@ -1243,7 +1606,11 @@ const SubjectTree = () => {
           const IconComponent = ICON_MAP[subject.icon] || BookOpen;
 
           return (
-            <div key={subject.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden transition-all duration-300 hover:shadow-lg group">
+            <motion.div
+              key={subject.id}
+              layout
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden transition-shadow duration-300 hover:shadow-lg group"
+            >
               <div className="p-1">
                 <button
                   onClick={() => setExpandedSubject(isExpanded ? null : subject.id)}
@@ -1253,13 +1620,16 @@ const SubjectTree = () => {
                   )}
                 >
                   <div className="flex items-center gap-5">
-                    <div className={cn(
-                      "w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-sm",
-                      progressPct === 100 ? "bg-green-500 text-white" :
-                        isExpanded ? `${subject.bg_color || subject.bgColor} text-white shadow-md` : `bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 ${subject.color}`
-                    )}>
+                    <motion.div
+                      animate={{ scale: isExpanded ? 1.05 : 1 }}
+                      transition={{ duration: 0.2 }}
+                      className={cn(
+                        "w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-sm",
+                        progressPct === 100 ? "bg-green-500 text-white" :
+                          isExpanded ? `${subject.bg_color || subject.bgColor} text-white shadow-md` : `bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 ${subject.color}`
+                      )}>
                       {progressPct === 100 ? <CheckCircle2 size={28} /> : <IconComponent size={28} />}
-                    </div>
+                    </motion.div>
                     <div className="text-left">
                       <span className="block font-bold text-slate-800 dark:text-slate-100 text-xl mb-1">{subject.title}</span>
                       <div className="flex items-center gap-3 text-sm">
@@ -1276,92 +1646,140 @@ const SubjectTree = () => {
                   <div className="flex items-center gap-6">
                     <div className="hidden md:block w-32">
                       <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full transition-all duration-500", progressPct === 100 ? "bg-green-500" : (subject.bg_color || subject.bgColor))}
-                          style={{ width: `${progressPct}%` }}
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progressPct}%` }}
+                          transition={{ duration: 0.5, ease: "easeOut" }}
+                          className={cn("h-full rounded-full", progressPct === 100 ? "bg-green-500" : (subject.bg_color || subject.bgColor))}
                         />
                       </div>
                     </div>
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                      isExpanded ? `bg-white dark:bg-slate-800 ${subject.color} rotate-90 shadow-sm` : "text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400"
-                    )}>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 90 : 0 }}
+                      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                        isExpanded ? `bg-white dark:bg-slate-800 ${subject.color} shadow-sm` : "text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400"
+                      )}>
                       <ChevronRight size={20} />
-                    </div>
+                    </motion.div>
                   </div>
                 </button>
               </div>
 
-              {isExpanded && (
-                <div className="border-t border-slate-100 dark:border-slate-800">
-                  <div className="p-2">
-                    {subject.topics.map((topic, index) => {
-                      const topicData = progress[topic.id] || {};
-                      const subtopics = Array.isArray(topic.subtopics) ? topic.subtopics : [];
-                      const completedCount = Object.values(topicData.subtopics_progress || {}).filter(Boolean).length;
-                      const isTopicCompleted = completedCount === subtopics.length && subtopics.length > 0;
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    key="content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{
+                      height: "auto",
+                      opacity: 1,
+                      transition: {
+                        height: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+                        opacity: { duration: 0.25, delay: 0.1 }
+                      }
+                    }}
+                    exit={{
+                      height: 0,
+                      opacity: 0,
+                      transition: {
+                        height: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] },
+                        opacity: { duration: 0.15 }
+                      }
+                    }}
+                    className="overflow-hidden"
+                  >
+                    <div className="border-t border-slate-100 dark:border-slate-800">
+                      <div className="p-2">
+                        {subject.topics.map((topic, index) => {
+                          const topicData = progress[topic.id] || {};
+                          const subtopics = Array.isArray(topic.subtopics) ? topic.subtopics : [];
+                          const completedCount = Object.values(topicData.subtopics_progress || {}).filter(Boolean).length;
+                          const isTopicCompleted = completedCount === subtopics.length && subtopics.length > 0;
 
-                      return (
-                        <div key={topic.id} className={cn(
-                          "mb-2 rounded-xl border transition-all overflow-hidden",
-                          isTopicCompleted ? "bg-green-50/30 dark:bg-green-900/10 border-green-100 dark:border-green-900/30" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800"
-                        )}>
-                          <div className="p-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
-                            <h4 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                              <button
-                                onClick={() => toggleTopic(topic.id, subtopics.length)}
-                                className={cn(
-                                  "w-6 h-6 rounded-md border flex items-center justify-center transition-colors",
-                                  isTopicCompleted
-                                    ? "bg-green-500 border-green-500 text-white"
-                                    : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-transparent hover:border-blue-400 dark:hover:border-blue-400"
-                                )}
-                              >
-                                <CheckCircle2 size={14} />
-                              </button>
-                              {topic.title}
-                            </h4>
-                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700">
-                              {completedCount}/{subtopics.length}
-                            </span>
-                          </div>
+                          return (
+                            <motion.div
+                              key={topic.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05, duration: 0.3 }}
+                              className={cn(
+                                "mb-2 rounded-xl border transition-all overflow-hidden",
+                                isTopicCompleted ? "bg-green-50/30 dark:bg-green-900/10 border-green-100 dark:border-green-900/30" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+                              )}
+                            >
+                              <div className="p-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                                <h4 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => toggleTopic(topic.id, subtopics.length)}
+                                    className={cn(
+                                      "w-6 h-6 rounded-md border flex items-center justify-center transition-colors",
+                                      isTopicCompleted
+                                        ? "bg-green-500 border-green-500 text-white"
+                                        : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-transparent hover:border-blue-400 dark:hover:border-blue-400"
+                                    )}
+                                  >
+                                    <CheckCircle2 size={14} />
+                                  </motion.button>
+                                  {topic.title}
+                                </h4>
+                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700">
+                                  {completedCount}/{subtopics.length}
+                                </span>
+                              </div>
 
-                          <div className="p-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {subtopics.map((sub, idx) => {
-                              const isSubCompleted = topicData.subtopics_progress?.[idx] || false;
-                              return (
-                                <button
-                                  key={idx}
-                                  onClick={() => toggleSubtopic(topic.id, idx)}
-                                  className={cn(
-                                    "flex items-start gap-3 p-3 rounded-lg text-sm text-left transition-all border",
-                                    isSubCompleted
-                                      ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30 text-green-800 dark:text-green-300"
-                                      : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-                                    isSubCompleted
-                                      ? "bg-green-500 border-green-500 text-white"
-                                      : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-transparent"
-                                  )}>
-                                    <CheckCircle2 size={12} />
-                                  </div>
-                                  <span className={cn("leading-relaxed", isSubCompleted && "line-through opacity-70")}>
-                                    {sub}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+                              <div className="p-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {subtopics.map((sub, idx) => {
+                                  const isSubCompleted = topicData.subtopics_progress?.[idx] || false;
+                                  return (
+                                    <motion.button
+                                      key={idx}
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: (index * 0.05) + (idx * 0.03), duration: 0.25 }}
+                                      whileHover={{ scale: 1.02, x: 4 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => toggleSubtopic(topic.id, idx)}
+                                      className={cn(
+                                        "flex items-start gap-3 p-3 rounded-lg text-sm text-left transition-all border",
+                                        isSubCompleted
+                                          ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30 text-green-800 dark:text-green-300"
+                                          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm"
+                                      )}
+                                    >
+                                      <motion.div
+                                        animate={{
+                                          scale: isSubCompleted ? [1, 1.2, 1] : 1,
+                                          backgroundColor: isSubCompleted ? "#22c55e" : "transparent"
+                                        }}
+                                        transition={{ duration: 0.3 }}
+                                        className={cn(
+                                          "mt-0.5 w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
+                                          isSubCompleted
+                                            ? "bg-green-500 border-green-500 text-white"
+                                            : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-transparent"
+                                        )}>
+                                        <CheckCircle2 size={12} />
+                                      </motion.div>
+                                      <span className={cn("leading-relaxed", isSubCompleted && "line-through opacity-70")}>
+                                        {sub}
+                                      </span>
+                                    </motion.button>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
       </div>
@@ -1372,11 +1790,25 @@ const SubjectTree = () => {
 
 const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [totalTime, setTotalTime] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editMinutes, setEditMinutes] = useState('25');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [startTime, setStartTime] = useState(null);
+
+  // Quick presets
+  const presets = [
+    { label: '15m', minutes: 15 },
+    { label: '25m', minutes: 25 },
+    { label: '45m', minutes: 45 },
+    { label: '60m', minutes: 60 },
+  ];
+
+  // Calculate progress percentage
+  const progressPercent = totalTime > 0 ? ((totalTime - timeLeft) / totalTime) * 100 : 0;
+  const circumference = 2 * Math.PI * 120;
+  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
   // Track elapsed time when active
   useEffect(() => {
@@ -1428,8 +1860,8 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const mins = parseInt(editMinutes);
     if (!isNaN(mins) && mins > 0) {
       setTimeLeft(mins * 60);
+      setTotalTime(mins * 60);
     } else {
-      // Revert if invalid
       setEditMinutes(Math.floor(timeLeft / 60).toString());
     }
   };
@@ -1440,90 +1872,228 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     }
   };
 
-  if (!isOpen) return null;
+  const handlePreset = (minutes) => {
+    if (!isActive) {
+      setTimeLeft(minutes * 60);
+      setTotalTime(minutes * 60);
+      setEditMinutes(minutes.toString());
+    }
+  };
+
+  const handleReset = () => {
+    setIsActive(false);
+    const currentMins = parseInt(editMinutes) || 25;
+    setTimeLeft(currentMins * 60);
+    setTotalTime(currentMins * 60);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-96 shadow-2xl transform transition-all scale-100 border border-slate-200 dark:border-slate-800">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-xl">Foco Total</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-            <RotateCcw size={20} className="rotate-45" />
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-            Matéria (Opcional)
-          </label>
-          <select
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            disabled={isActive}
-            className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Sem matéria específica</option>
-            {SUBJECTS.map(s => (
-              <option key={s.id} value={s.id}>{s.title}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="text-center mb-8">
-          {isEditing ? (
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <input
-                type="number"
-                value={editMinutes}
-                onChange={(e) => setEditMinutes(e.target.value)}
-                onBlur={handleTimeSubmit}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                className="text-7xl font-bold text-slate-800 dark:text-slate-100 font-mono tracking-tighter w-40 text-center bg-slate-50 dark:bg-slate-800 border-b-4 border-blue-500 outline-none rounded-lg"
-              />
-              <span className="text-2xl font-bold text-slate-400 mt-4">min</span>
-            </div>
-          ) : (
-            <div
-              onClick={handleTimeClick}
-              className={cn(
-                "text-7xl font-bold text-slate-800 dark:text-slate-100 font-mono tracking-tighter cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none",
-                isActive && "cursor-default hover:text-slate-800 dark:hover:text-slate-100"
-              )}
-              title={!isActive ? "Clique para editar o tempo" : ""}
-            >
-              {formatTime(timeLeft)}
-            </div>
-          )}
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isEditing ? 'Pressione Enter para salvar' : 'Hora de estudar!'}
-          </p>
-        </div>
-
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() => setIsActive(!isActive)}
-            className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95",
-              isActive ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-600 hover:bg-blue-700"
-            )}
-          >
-            {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-          </button>
-          <button
-            onClick={() => {
-              setIsActive(false);
-              // Reset to the last set custom time or default 25
-              const currentMins = parseInt(editMinutes) || 25;
-              setTimeLeft(currentMins * 60);
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{
+              type: "spring",
+              damping: 25,
+              stiffness: 300
             }}
-            className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl w-full max-w-md shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden"
           >
-            <RotateCcw size={24} />
-          </button>
-        </div>
-      </div>
-    </div>
+            {/* Header with gradient */}
+            <div className="relative px-8 pt-8 pb-4">
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-red-500/10 via-orange-500/5 to-transparent dark:from-red-500/20 dark:via-orange-500/10 pointer-events-none" />
+
+              <div className="relative flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+                    <Clock size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-xl">Pomodoro</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Foco Total</p>
+                  </div>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onClose}
+                  className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                >
+                  <RotateCcw size={18} className="rotate-45" />
+                </motion.button>
+              </div>
+            </div>
+
+            <div className="px-8 pb-8">
+              {/* Subject Selector */}
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Matéria (Opcional)
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    disabled={isActive}
+                    className="w-full p-3 pl-4 pr-10 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Sem matéria específica</option>
+                    {SUBJECTS.map(s => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Timer Circle */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative">
+                  {/* Background glow when active */}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-orange-500/30 rounded-full blur-2xl" />
+                  )}
+
+                  {/* Progress Ring */}
+                  <svg className="w-64 h-64 transform -rotate-90">
+                    {/* Background circle */}
+                    <circle
+                      cx="128"
+                      cy="128"
+                      r="120"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="transparent"
+                      className="text-slate-100 dark:text-slate-800"
+                    />
+                    {/* Progress circle */}
+                    <motion.circle
+                      cx="128"
+                      cy="128"
+                      r="120"
+                      stroke="url(#pomodoroGradient)"
+                      strokeWidth="8"
+                      fill="transparent"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      initial={{ strokeDashoffset: circumference }}
+                      animate={{ strokeDashoffset }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                    <defs>
+                      <linearGradient id="pomodoroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ef4444" />
+                        <stop offset="50%" stopColor="#f97316" />
+                        <stop offset="100%" stopColor="#eab308" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* Time Display */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={editMinutes}
+                          onChange={(e) => setEditMinutes(e.target.value)}
+                          onBlur={handleTimeSubmit}
+                          onKeyDown={handleKeyDown}
+                          autoFocus
+                          className="text-5xl font-bold text-slate-800 dark:text-slate-100 font-mono tracking-tight w-24 text-center bg-transparent border-b-2 border-red-500 outline-none"
+                        />
+                        <span className="text-xl font-medium text-slate-400 mt-2">min</span>
+                      </div>
+                    ) : (
+                      <motion.div
+                        onClick={handleTimeClick}
+                        whileHover={!isActive ? { scale: 1.05 } : {}}
+                        className={cn(
+                          "text-5xl font-bold font-mono tracking-tight transition-colors select-none",
+                          isActive
+                            ? "text-slate-800 dark:text-slate-100 cursor-default"
+                            : "text-slate-800 dark:text-slate-100 cursor-pointer hover:text-red-500 dark:hover:text-red-400"
+                        )}
+                        title={!isActive ? "Clique para editar" : ""}
+                      >
+                        {formatTime(timeLeft)}
+                      </motion.div>
+                    )}
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                      {isActive ? '🔥 Focado' : isEditing ? 'Enter para salvar' : 'Clique para editar'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="flex justify-center gap-2 mb-6">
+                {presets.map((preset) => (
+                  <motion.button
+                    key={preset.minutes}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handlePreset(preset.minutes)}
+                    disabled={isActive}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                      parseInt(editMinutes) === preset.minutes
+                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/25"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700",
+                      isActive && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {preset.label}
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Control Buttons */}
+              <div className="flex justify-center gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsActive(!isActive)}
+                  className={cn(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all",
+                    isActive
+                      ? "bg-gradient-to-br from-orange-500 to-amber-500 shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40"
+                      : "bg-gradient-to-br from-red-500 to-orange-500 shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40"
+                  )}
+                >
+                  {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05, rotate: -15 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleReset}
+                  className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-md"
+                >
+                  <RotateCcw size={24} />
+                </motion.button>
+              </div>
+
+              {/* Progress indicator */}
+              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500" />
+                <span>{Math.round(progressPercent)}% concluído</span>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -1876,6 +2446,7 @@ const DEFAULT_STATS = {
 };
 
 function App() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isPomodoroOpen, setIsPomodoroOpen] = useState(false);
   const [showTimeMachine, setShowTimeMachine] = useState(false);
@@ -2125,6 +2696,11 @@ function App() {
     { id: 'questions', icon: <Brain size={20} />, label: 'Questões' },
     { id: 'settings', icon: <SettingsIcon size={20} />, label: 'Configurações' },
   ];
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return <LoginScreen />;
+  }
 
   return (
     <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row w-full overflow-hidden">
