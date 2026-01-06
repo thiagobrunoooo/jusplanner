@@ -104,9 +104,13 @@ import Assistant from './components/Assistant';
 import VadeMecum from './components/VadeMecum';
 import TimeMachine from './components/TimeMachine'; // Import TimeMachine
 import Settings from './components/Settings'; // Import Settings
+import { ScheduleSwitcher } from './components/ScheduleManager';
+import { InitialScheduleSelector } from './components/InitialScheduleSelector';
 import { ICON_MAP } from './lib/icons';
+import { generateDynamicSchedule, getWeekDescription } from './lib/scheduleGenerator';
 
 import { useProfileData, useDailyHistory, useProgressData, useStudyTime, useNotes, useMaterials, useSubjects } from './hooks/useStudyData';
+import { ScheduleProvider, useSchedules } from './hooks/useSchedules';
 
 // Suppress Recharts warnings
 const originalConsoleError = console.error;
@@ -227,6 +231,7 @@ const Header = ({ togglePomodoro, userStats, setOpen, setShowTimeMachine }) => {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
+          <ScheduleSwitcher />
           <ThemeTabs />
 
           <button
@@ -305,6 +310,19 @@ const Header = ({ togglePomodoro, userStats, setOpen, setShowTimeMachine }) => {
 };
 
 const Dashboard = ({ progress, dailyHistory, studyTime }) => {
+  const { filteredSubjects, activeSchedule } = useSchedules();
+  const { dynamicSchedule } = useMemo(() => {
+    // Re-generate schedule here or pass it down. 
+    // Ideally should be passed down, but for now we regenerate to access days calculation
+    // Se filteredSubjects estiver vazio (novo usuário sem cronograma), garante array vazio
+    const topics = activeSchedule ? activeSchedule.topicIds : [];
+    // Only generate if we have subjects
+    if (!filteredSubjects || filteredSubjects.length === 0) return { dynamicSchedule: {} };
+
+    // We need the full schedule structure to count days
+    return { dynamicSchedule: generateDynamicSchedule(topics, SUBJECTS) };
+  }, [activeSchedule, filteredSubjects]);
+
   const stats = useMemo(() => {
     let totalQuestions = 0;
     let totalCorrect = 0;
@@ -313,26 +331,40 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     let totalDays = 0;
     let currentDay = 0;
 
-    // Calculate Total Study Time
-    const totalMinutes = studyTime ? Object.values(studyTime).reduce((acc, curr) => acc + curr, 0) / 60 : 0;
+    // Use filteredSubjects se houver cronograma ativo, senão usa todos (apenas para fallback, mas idealmente sempre terá cronograma ou nada)
+    const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
+
+    // Lista de IDs de tópicos válidos para este cronograma
+    const validTopicIds = new Set(subjectsToUse.flatMap(s => s.topics.map(t => t.id)));
+
+    // Calculate Total Study Time (Filtered)
+    const totalMinutes = studyTime
+      ? Object.entries(studyTime)
+        .filter(([subjectId]) => subjectsToUse.some(s => s.id === subjectId))
+        .reduce((acc, [_, curr]) => acc + curr, 0) / 60
+      : 0;
+
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.round(totalMinutes % 60);
     const formattedTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
     const subjectCounts = {};
 
-    // Initialize subject counts
-    SUBJECTS.forEach(s => subjectCounts[s.title] = { count: 0, color: '#94a3b8' });
+    // Initialize subject counts for filtered subjects
+    subjectsToUse.forEach(s => subjectCounts[s.title] = { count: 0, color: '#94a3b8' });
 
     // Assign colors to subjects for the pie chart
     const colors = ['#4f46e5', '#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e'];
-    SUBJECTS.forEach((s, i) => {
+    subjectsToUse.forEach((s, i) => {
       if (subjectCounts[s.title]) {
         subjectCounts[s.title].color = colors[i % colors.length];
       }
     });
 
     Object.entries(progress).forEach(([topicId, topicData]) => {
+      // Filter by valid topics
+      if (!validTopicIds.has(topicId)) return;
+
       if (topicData.questions && typeof topicData.questions === 'object') {
         const qTotal = topicData.questions.total || 0;
         const qCorrect = topicData.questions.correct || 0;
@@ -341,7 +373,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
         totalCorrect += qCorrect;
 
         // Find subject for this topic
-        const subject = SUBJECTS.find(s => s.topics.find(t => t.id === topicId));
+        const subject = subjectsToUse.find(s => s.topics.find(t => t.id === topicId));
         if (subject && subjectCounts[subject.title]) {
           subjectCounts[subject.title].count += qTotal;
         }
@@ -359,90 +391,106 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
       }));
 
     // --- NEW METRICS CALCULATIONS ---
-    // 1. Total Topics
-    totalTopics = SUBJECTS.reduce((acc, s) => acc + s.topics.length, 0);
+    // 1. Total Topics (Filtered)
+    totalTopics = subjectsToUse.reduce((acc, s) => acc + s.topics.length, 0);
 
-    // 2. Topics Studied (Count topics with at least 'read' marked as true)
-    // Filter by valid topics in SUBJECTS to avoid counting "ghost" or legacy topics
-    const validTopicIds = new Set(SUBJECTS.flatMap(s => s.topics.map(t => t.id)));
+    // 2. Topics Studied (Filtered)
     topicsStudied = Object.entries(progress).filter(([tId, p]) => validTopicIds.has(tId) && p.read).length;
 
-    // 3. Total Days (Count days in SCHEDULE)
+    // 3. Total Days (Count days in DYNAMIC SCHEDULE)
     totalDays = 0;
-    Object.values(SCHEDULE).forEach(week => {
-      totalDays += Object.keys(week).length;
-    });
+    if (dynamicSchedule) {
+      Object.values(dynamicSchedule).forEach(week => {
+        totalDays += Object.keys(week).length;
+      });
+    }
 
-    // 4. Current Day (Find the first day with uncompleted topics)
+    // 4. Current Day (Find the first day with uncompleted topics in DYNAMIC SCHEDULE)
     currentDay = 1;
     let daysCounted = 0;
     let foundCurrent = false;
 
-    // Flatten schedule to iterate days in order
-    const weeks = Object.keys(SCHEDULE).sort(); // week1, week2...
-    for (const week of weeks) {
-      const days = Object.keys(SCHEDULE[week]).sort();
-      for (const day of days) {
-        if (SCHEDULE[week][day]) {
-          daysCounted++;
-          const dayTopics = SCHEDULE[week][day];
-          // Check if all topics in this day are studied
-          const isDayComplete = dayTopics.every(tId => progress[tId]?.read);
+    if (dynamicSchedule) {
+      // Flatten schedule to iterate days in order
+      const weeks = Object.keys(dynamicSchedule).sort(); // week1, week2...
+      for (const week of weeks) {
+        const days = Object.keys(dynamicSchedule[week]).sort();
+        for (const day of days) {
+          if (dynamicSchedule[week][day]) {
+            daysCounted++;
+            const dayTopics = dynamicSchedule[week][day];
+            // Check if all topics in this day are studied
+            const isDayComplete = dayTopics.every(tId => progress[tId]?.read);
 
-          if (!isDayComplete && !foundCurrent) {
-            currentDay = daysCounted;
-            foundCurrent = true;
+            if (!isDayComplete && !foundCurrent) {
+              currentDay = daysCounted;
+              foundCurrent = true;
+            }
           }
         }
       }
     }
     if (!foundCurrent && daysCounted > 0) currentDay = daysCounted; // All done
+    if (daysCounted === 0) currentDay = 0; // Empty schedule
 
-    // 5. Next Goal (Find the first uncompleted topic)
+    // 5. Next Goal (Find the first uncompleted topic in DYNAMIC SCHEDULE)
     let nextGoal = { title: 'Tudo Concluído!', progress: 100 };
     let foundGoal = false;
 
-    for (const week of weeks) {
-      if (foundGoal) break;
-      const days = Object.keys(SCHEDULE[week]).sort();
-      for (const day of days) {
-        if (SCHEDULE[week][day]) {
-          const dayTopicsIds = SCHEDULE[week][day];
-          for (const tId of dayTopicsIds) {
-            // Skip revision/rest days for goal setting if they are just strings like 'rev_sem1'
-            // Assuming we only track progress on actual topics from SUBJECTS
-            const topicData = progress[tId] || {};
+    if (dynamicSchedule) {
+      const weeks = Object.keys(dynamicSchedule).sort();
+      for (const week of weeks) {
+        if (foundGoal) break;
+        const days = Object.keys(dynamicSchedule[week]).sort();
+        for (const day of days) {
+          if (dynamicSchedule[week][day]) {
+            const dayTopicsIds = dynamicSchedule[week][day];
+            for (const tId of dayTopicsIds) {
+              // Ignore non-topic IDs like 'rest' or revision markers locally if needed, 
+              // but generateDynamicSchedule returns valid topicIDs mostly.
+              // Check if it is a real topic in our list
+              if (!validTopicIds.has(tId)) continue;
 
-            // Check completion status
-            const isRead = topicData.read;
-            const isReviewed = topicData.reviewed;
-            const isQuestions = topicData.questions === true || topicData.questions?.completed;
+              const topicData = progress[tId] || {};
 
-            if (!isRead || !isReviewed || !isQuestions) {
-              // Found our next goal!
-              const topicObj = SUBJECTS.flatMap(s => s.topics).find(t => t.id === tId);
-              if (topicObj) {
-                let stepsCompleted = 0;
-                if (isRead) stepsCompleted++;
-                if (isReviewed) stepsCompleted++;
-                if (isQuestions) stepsCompleted++;
+              // Check completion status
+              const isRead = topicData.read;
+              const isReviewed = topicData.reviewed;
+              const isQuestions = topicData.questions === true || topicData.questions?.completed;
 
-                nextGoal = {
-                  title: topicObj.title,
-                  progress: Math.round((stepsCompleted / 3) * 100)
-                };
-                foundGoal = true;
-                break;
+              if (!isRead || !isReviewed || !isQuestions) {
+                // Found our next goal!
+                const topicObj = subjectsToUse.flatMap(s => s.topics).find(t => t.id === tId);
+                if (topicObj) {
+                  let stepsCompleted = 0;
+                  if (isRead) stepsCompleted++;
+                  if (isReviewed) stepsCompleted++;
+                  if (isQuestions) stepsCompleted++;
+
+                  nextGoal = {
+                    title: topicObj.title,
+                    progress: Math.round((stepsCompleted / 3) * 100)
+                  };
+                  foundGoal = true;
+                  break;
+                }
               }
             }
           }
+          if (foundGoal) break;
         }
-        if (foundGoal) break;
       }
     }
 
+    // Se não encontrou meta mas tem cronograma vazio ou concluído
+    if (!foundGoal && totalTopics > 0 && topicsStudied < totalTopics) {
+      nextGoal = { title: 'Continuar Estudos', progress: 0 };
+    }
+
     const planProgress = totalTopics > 0 ? Math.round((topicsStudied / totalTopics) * 100) : 0;
-    const dayProgress = totalDays > 0 ? Math.round((currentDay / totalDays) * 100) : 0; // Just a rough progress of days
+
+    // Evitar divisão por zero se schedule vazio
+    const dayProgress = totalDays > 0 ? Math.round((currentDay / totalDays) * 100) : 0;
 
     return {
       totalQuestions,
@@ -456,7 +504,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
       nextGoal,
       formattedTime
     };
-  }, [progress, studyTime]);
+  }, [progress, studyTime, filteredSubjects, activeSchedule, dynamicSchedule]);
 
   // Real Weekly Data
   const weeklyChartData = useMemo(() => {
@@ -1088,11 +1136,34 @@ const DebouncedInput = ({ value, onCommit, ...props }) => {
 };
 
 const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, setNotes }) => {
+  const { activeSchedule, filteredSubjects, loading: scheduleLoading } = useSchedules();
   const [selectedWeek, setSelectedWeek] = useState('week1');
   const [selectedDay, setSelectedDay] = useState('Dia 01');
   const [expandedCard, setExpandedCard] = useState(null);
 
-  const days = useMemo(() => Object.keys(SCHEDULE[selectedWeek]).sort(), [selectedWeek]);
+  // Gera cronograma dinâmico baseado nos tópicos do schedule ativo
+  const dynamicSchedule = useMemo(() => {
+    if (!activeSchedule?.topicIds || activeSchedule.topicIds.length === 0) {
+      return SCHEDULE; // Fallback para o schedule estático
+    }
+    return generateDynamicSchedule(activeSchedule.topicIds, SUBJECTS);
+  }, [activeSchedule?.topicIds]);
+
+  // Lista de semanas disponíveis
+  const weeks = useMemo(() => Object.keys(dynamicSchedule).sort(), [dynamicSchedule]);
+
+  // Garante que a semana selecionada existe
+  useEffect(() => {
+    if (weeks.length > 0 && !weeks.includes(selectedWeek)) {
+      setSelectedWeek(weeks[0]);
+    }
+  }, [weeks, selectedWeek]);
+
+  const days = useMemo(() => {
+    const weekData = dynamicSchedule[selectedWeek];
+    if (!weekData) return [];
+    return Object.keys(weekData).sort();
+  }, [selectedWeek, dynamicSchedule]);
 
   useEffect(() => {
     setSelectedDay(days[0]);
@@ -1115,7 +1186,7 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
     return note.content || '';
   };
 
-  const currentDayTopicsIds = SCHEDULE[selectedWeek]?.[selectedDay] || [];
+  const currentDayTopicsIds = dynamicSchedule[selectedWeek]?.[selectedDay] || [];
   const currentDayTopics = SUBJECTS.flatMap(s => s.topics).filter(t => currentDayTopicsIds.includes(t.id));
 
   // Calculate daily progress
@@ -1136,72 +1207,31 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Cronograma Semanal</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">
-            {selectedWeek === 'week1' && 'Semana 01: Fundamentos e Teoria Geral'}
-            {selectedWeek === 'week2' && 'Semana 02: Obrigações, Atos e Excludentes'}
-            {selectedWeek === 'week3' && 'Semana 03: Contratos, Licitações e Procedimento'}
-            {selectedWeek === 'week4' && 'Semana 04: Contratos II, Agentes e Processo'}
-            {selectedWeek === 'week5' && 'Semana 05: Provas, Recursos e Crimes Específicos'}
-            {selectedWeek === 'week6' && 'Semana 06: Recursos Cíveis e Refinamento Final'}
+            {activeSchedule ? (
+              <>Semana {selectedWeek.replace('week', '')}: {getWeekDescription(dynamicSchedule, selectedWeek, SUBJECTS)}</>
+            ) : (
+              'Selecione um cronograma para ver seu plano de estudos'
+            )}
           </p>
         </div>
 
         <div className="flex flex-col gap-3 w-full xl:w-auto">
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto no-scrollbar w-full xl:w-auto">
             <div className="flex min-w-max">
-              <button
-                onClick={() => setSelectedWeek('week1')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week1' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 1
-              </button>
-              <button
-                onClick={() => setSelectedWeek('week2')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week2' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 2
-              </button>
-              <button
-                onClick={() => setSelectedWeek('week3')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week3' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 3
-              </button>
-              <button
-                onClick={() => setSelectedWeek('week4')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week4' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 4
-              </button>
-              <button
-                onClick={() => setSelectedWeek('week5')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week5' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 5
-              </button>
-              <button
-                onClick={() => setSelectedWeek('week6')}
-                className={cn(
-                  "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                  selectedWeek === 'week6' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-              >
-                Semana 6
-              </button>
+              {weeks.map((week, index) => (
+                <button
+                  key={week}
+                  onClick={() => setSelectedWeek(week)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
+                    selectedWeek === week
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  )}
+                >
+                  Semana {index + 1}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1522,10 +1552,20 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
 const SubjectTree = () => {
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [progress, updateProgress] = useProgressData({});
-  const { subjects, loading } = useSubjects();
+  const { filteredSubjects, activeSchedule, loading } = useSchedules();
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Carregando edital...</div>;
+  }
+
+  if (!activeSchedule) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-slate-500 dark:text-slate-400 mb-4">
+          Nenhum cronograma selecionado. Crie um cronograma primeiro.
+        </p>
+      </div>
+    );
   }
 
   const toggleSubtopic = (topicId, subtopicIndex) => {
@@ -1600,7 +1640,7 @@ const SubjectTree = () => {
       </div>
 
       <div className="grid gap-6">
-        {subjects.map((subject) => {
+        {filteredSubjects.map((subject) => {
           const isExpanded = expandedSubject === subject.id;
           const progressPct = calculateSubjectProgress(subject);
           const IconComponent = ICON_MAP[subject.icon] || BookOpen;
@@ -1789,6 +1829,7 @@ const SubjectTree = () => {
 
 
 const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
+  const { filteredSubjects, activeSchedule } = useSchedules();
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [totalTime, setTotalTime] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -1796,6 +1837,8 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
   const [editMinutes, setEditMinutes] = useState('25');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [startTime, setStartTime] = useState(null);
+
+  const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
 
   // Quick presets
   const presets = [
@@ -1948,7 +1991,7 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
                     className="w-full p-3 pl-4 pr-10 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">Sem matéria específica</option>
-                    {SUBJECTS.map(s => (
+                    {subjectsToUse.map(s => (
                       <option key={s.id} value={s.id}>{s.title}</option>
                     ))}
                   </select>
@@ -2099,14 +2142,21 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
 
 const PerformanceAnalytics = ({ studyTime }) => {
   const [progress] = useProgressData({});
+  const { filteredSubjects, activeSchedule } = useSchedules();
+
+  // Use filteredSubjects se houver cronograma ativo, senão usa todos
+  const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
 
   // Calculate Global Stats
   const globalStats = useMemo(() => {
     let totalQuestions = 0;
     let totalCorrect = 0;
 
-    Object.values(progress).forEach(topic => {
-      if (topic.questions && typeof topic.questions === 'object') {
+    // Apenas considera os tópicos do cronograma ativo
+    const topicIds = subjectsToUse.flatMap(s => s.topics.map(t => t.id));
+
+    Object.entries(progress).forEach(([topicId, topic]) => {
+      if (topicIds.includes(topicId) && topic.questions && typeof topic.questions === 'object') {
         totalQuestions += (topic.questions.total || 0);
         totalCorrect += (topic.questions.correct || 0);
       }
@@ -2117,11 +2167,11 @@ const PerformanceAnalytics = ({ studyTime }) => {
       totalCorrect,
       accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
     };
-  }, [progress]);
+  }, [progress, subjectsToUse]);
 
   // Calculate Subject Stats
   const subjectStats = useMemo(() => {
-    return SUBJECTS.map(subject => {
+    return subjectsToUse.map(subject => {
       let subjectQuestions = 0;
       let subjectCorrect = 0;
 
@@ -2142,12 +2192,12 @@ const PerformanceAnalytics = ({ studyTime }) => {
         errorRate: subjectQuestions > 0 ? 100 - Math.round((subjectCorrect / subjectQuestions) * 100) : 0
       };
     }).sort((a, b) => b.accuracy - a.accuracy);
-  }, [progress]);
+  }, [progress, subjectsToUse]);
 
   // Get Topic Breakdown (Weakest first)
   const topicBreakdown = useMemo(() => {
     const topics = [];
-    SUBJECTS.forEach(subject => {
+    subjectsToUse.forEach(subject => {
       subject.topics.forEach(topic => {
         const topicData = progress[topic.id];
         if (topicData?.questions && typeof topicData.questions === 'object' && topicData.questions.total > 0) {
@@ -2162,20 +2212,25 @@ const PerformanceAnalytics = ({ studyTime }) => {
       });
     });
     return topics.sort((a, b) => a.accuracy - b.accuracy);
-  }, [progress]);
+  }, [progress, subjectsToUse]);
 
   // Calculate Study Time Data
   const studyTimeData = useMemo(() => {
     if (!studyTime) return [];
 
-    return Object.entries(studyTime).map(([subjectId, seconds]) => {
-      const subject = SUBJECTS.find(s => s.id === subjectId);
-      return {
-        name: subject ? subject.title : 'Outros',
-        value: Math.round(seconds / 60), // Convert to minutes
-        color: subject ? (subject.id === 'civil' ? '#4f46e5' : subject.id === 'penal' ? '#ef4444' : '#10b981') : '#94a3b8' // Simplified colors
-      };
-    }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+    // Pega apenas os IDs de subjects do cronograma ativo
+    const subjectIds = subjectsToUse.map(s => s.id);
+
+    return Object.entries(studyTime)
+      .filter(([subjectId]) => subjectIds.includes(subjectId))
+      .map(([subjectId, seconds]) => {
+        const subject = subjectsToUse.find(s => s.id === subjectId);
+        return {
+          name: subject ? subject.title : 'Outros',
+          value: Math.round(seconds / 60), // Convert to minutes
+          color: subject ? (subject.id === 'civil' ? '#4f46e5' : subject.id === 'penal' ? '#ef4444' : '#10b981') : '#94a3b8' // Simplified colors
+        };
+      }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [studyTime]);
 
   const formatDuration = (minutes) => {
@@ -2305,131 +2360,138 @@ const PerformanceAnalytics = ({ studyTime }) => {
 
         {subjectStats.some(s => s.total > 0) ? (
           <div className="p-6 space-y-3">
-            {subjectStats.map((subject, idx) => {
-              // Get topics for this subject
-              const subjectObj = SUBJECTS.find(s => s.title === subject.name);
-              const subjectTopics = subjectObj?.topics.map(topic => {
-                const topicData = progress[topic.id];
-                if (topicData?.questions && typeof topicData.questions === 'object' && topicData.questions.total > 0) {
-                  return {
-                    title: topic.title,
-                    total: topicData.questions.total,
-                    correct: topicData.questions.correct,
-                    accuracy: Math.round((topicData.questions.correct / topicData.questions.total) * 100)
-                  };
-                }
-                return null;
-              }).filter(Boolean) || [];
-
-              const [isExpanded, setIsExpanded] = useState(false);
-              const hasData = subject.total > 0;
-
-              if (!hasData) return null;
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-sm"
-                >
-                  {/* Subject Header */}
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className={cn(
-                        "w-3 h-3 rounded-full",
-                        subject.accuracy >= 70 ? "bg-green-500" :
-                          subject.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500"
-                      )} />
-                      <span className="font-bold text-slate-800 dark:text-slate-100 text-left">{subject.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <span className={cn(
-                        "text-xl font-bold",
-                        subject.accuracy >= 70 ? "text-green-600 dark:text-green-400" :
-                          subject.accuracy >= 50 ? "text-yellow-600 dark:text-yellow-400" :
-                            "text-red-600 dark:text-red-400"
-                      )}>
-                        {subject.accuracy}%
-                      </span>
-                      <ChevronDown
-                        size={20}
-                        className={cn(
-                          "text-slate-400 transition-transform",
-                          isExpanded && "rotate-180"
-                        )}
-                      />
-                    </div>
-                  </button>
-
-                  {/* Subject Summary */}
-                  <div className="px-4 pb-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>{subject.correct} acertos</span>
-                    <span>{subject.total} total</span>
-                  </div>
-
-                  {/* Expanded Topics */}
-                  {isExpanded && subjectTopics.length > 0 && (
-                    <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-3 flex items-center gap-2">
-                        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                        <span>Desempenho por Tópico</span>
-                        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                      </div>
-
-                      {subjectTopics.map((topic, topicIdx) => (
-                        <div key={topicIdx} className="group">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                              {topic.title}
-                            </span>
-                            <span className={cn(
-                              "text-sm font-bold",
-                              topic.accuracy >= 70 ? "text-green-600 dark:text-green-400" :
-                                topic.accuracy >= 50 ? "text-yellow-600 dark:text-yellow-400" :
-                                  "text-red-600 dark:text-red-400"
-                            )}>
-                              {topic.accuracy}%
-                            </span>
-                          </div>
-
-                          {/* Progress Bar */}
-                          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all duration-500",
-                                topic.accuracy >= 70 ? "bg-green-500" :
-                                  topic.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500"
-                              )}
-                              style={{ width: `${topic.accuracy}%` }}
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-end text-[10px] text-slate-400">
-                            <span>{topic.correct}/{topic.total}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {subjectStats.map((subject, idx) => (
+              <SubjectPerformanceCard
+                key={subject.name}
+                subject={subject}
+                progress={progress}
+                subjectsToUse={subjectsToUse}
+              />
+            ))}
           </div>
         ) : (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Brain className="text-slate-300 dark:text-slate-600" size={32} />
+              <BarChart2 size={32} className="text-slate-400" />
             </div>
-            <h3 className="text-slate-400 dark:text-slate-500 font-medium mb-2">Nenhum dado registrado ainda</h3>
-            <p className="text-sm text-slate-400 dark:text-slate-500">
-              Comece a resolver questões no Cronograma para ver suas estatísticas aqui!
+            <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">Sem dados suficientes</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">
+              Realize questões para visualizar sua análise detalhada de desempenho por matéria e tópico.
             </p>
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const SubjectPerformanceCard = ({ subject, progress, subjectsToUse }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Get topics for this subject
+  const subjectObj = subjectsToUse.find(s => s.title === subject.name);
+  const subjectTopics = subjectObj?.topics.map(topic => {
+    const topicData = progress[topic.id];
+    if (topicData?.questions && typeof topicData.questions === 'object' && topicData.questions.total > 0) {
+      return {
+        title: topic.title,
+        total: topicData.questions.total,
+        correct: topicData.questions.correct,
+        accuracy: Math.round((topicData.questions.correct / topicData.questions.total) * 100)
+      };
+    }
+    return null;
+  }).filter(Boolean) || [];
+
+  const hasData = subject.total > 0;
+
+  if (!hasData) return null;
+
+  return (
+    <div className="bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-sm">
+      {/* Subject Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3 flex-1">
+          <div className={cn(
+            "w-3 h-3 rounded-full",
+            subject.accuracy >= 70 ? "bg-green-500" :
+              subject.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500"
+          )} />
+          <span className="font-bold text-slate-800 dark:text-slate-100 text-left">{subject.name}</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <span className={cn(
+            "text-xl font-bold",
+            subject.accuracy >= 70 ? "text-green-600 dark:text-green-400" :
+              subject.accuracy >= 50 ? "text-yellow-600 dark:text-yellow-400" :
+                "text-red-600 dark:text-red-400"
+          )}>
+            {subject.accuracy}%
+          </span>
+          <ChevronDown
+            size={20}
+            className={cn(
+              "text-slate-400 transition-transform",
+              isExpanded && "rotate-180"
+            )}
+          />
+        </div>
+      </button>
+
+      {/* Subject Summary */}
+      <div className="px-4 pb-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <span>{subject.correct} acertos</span>
+        <span>{subject.total} total</span>
+      </div>
+
+      {/* Expanded Topics */}
+      {isExpanded && subjectTopics.length > 0 && (
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2">
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-3 flex items-center gap-2">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <span>Desempenho por Tópico</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          </div>
+
+          {subjectTopics.map((topic, topicIdx) => (
+            <div key={topicIdx} className="group">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {topic.title}
+                </span>
+                <span className={cn(
+                  "text-sm font-bold",
+                  topic.accuracy >= 70 ? "text-green-600 dark:text-green-400" :
+                    topic.accuracy >= 50 ? "text-yellow-600 dark:text-yellow-400" :
+                      "text-red-600 dark:text-red-400"
+                )}>
+                  {topic.accuracy}%
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-1">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500",
+                    topic.accuracy >= 70 ? "bg-green-500" :
+                      topic.accuracy >= 50 ? "bg-yellow-500" : "bg-red-500"
+                  )}
+                  style={{ width: `${topic.accuracy}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end text-[10px] text-slate-400">
+                <span>{topic.correct}/{topic.total}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -2839,15 +2901,19 @@ function App() {
 
       {showTimeMachine && <TimeMachine onClose={() => setShowTimeMachine(false)} />}
 
+      <InitialScheduleSelector />
+
     </div>
   );
 }
 
 const AppWithAuth = () => (
   <AuthProvider>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <ScheduleProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </ScheduleProvider>
   </AuthProvider>
 );
 

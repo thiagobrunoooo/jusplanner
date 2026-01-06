@@ -58,6 +58,24 @@ export const DesktopSidebar = ({
     ...props
 }) => {
     const { open, setOpen, animate } = useSidebar();
+    const hoverTimeoutRef = React.useRef(null);
+
+    const handleMouseEnter = () => {
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+        // Pequeno delay para evitar disparos acidentais ao passar o mouse rápido
+        hoverTimeoutRef.current = setTimeout(() => {
+            setOpen(true);
+        }, 100);
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+        // Delay maior para evitar fechamento acidental se o mouse sair brevemente
+        hoverTimeoutRef.current = setTimeout(() => {
+            setOpen(false);
+        }, 300);
+    };
+
     return (
         <motion.div
             className={cn(
@@ -68,18 +86,20 @@ export const DesktopSidebar = ({
                 width: animate ? (open ? "280px" : "80px") : "280px",
             }}
             transition={{
-                duration: 0.3,
-                ease: [0.25, 0.1, 0.25, 1],
+                type: "spring",
+                stiffness: 300,
+                damping: 30, // Reduzido para movimento mais fluido e menos "duro"
+                mass: 0.8
             }}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             {...props}
         >
             {/* Decorative gradient orb */}
             <div className="absolute top-20 -left-20 w-40 h-40 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-20 -right-10 w-32 h-32 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="relative z-10 flex flex-col h-full">
+
+            <div className="relative z-10 flex flex-col h-full overflow-hidden">
                 {children}
             </div>
         </motion.div>
@@ -149,13 +169,13 @@ export const SidebarLink = ({
     return (
         <motion.button
             onClick={onClick}
-            whileHover={{ x: 4 }}
+            whileHover={{ x: 4, backgroundColor: "rgba(0,0,0,0.02)" }}
             whileTap={{ scale: 0.98 }}
             className={cn(
-                "flex items-center justify-start gap-3 group/sidebar py-3 px-3 rounded-xl w-full text-left transition-all duration-200 relative overflow-hidden",
+                "flex items-center justify-start gap-4 group/sidebar py-3 px-3 rounded-xl w-full text-left transition-all duration-200 relative overflow-hidden",
                 active
                     ? "bg-gradient-to-r from-blue-500/15 to-indigo-500/10 dark:from-blue-500/25 dark:to-indigo-500/15 text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-slate-100",
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
                 className
             )}
             {...props}
@@ -170,31 +190,35 @@ export const SidebarLink = ({
                     transition={{ duration: 0.2 }}
                 />
             )}
-            
+
             <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
-                active 
-                    ? "bg-blue-500/20 dark:bg-blue-400/20 shadow-sm" 
+                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 z-20 relative",
+                active
+                    ? "bg-blue-500/20 dark:bg-blue-400/20 shadow-sm"
                     : "group-hover/sidebar:bg-slate-200/50 dark:group-hover/sidebar:bg-slate-700/50"
             )}>
                 {React.cloneElement(link.icon, {
                     className: cn(
                         "h-[18px] w-[18px] flex-shrink-0 transition-all duration-300",
-                        active 
-                            ? "text-blue-600 dark:text-blue-400" 
+                        active
+                            ? "text-blue-600 dark:text-blue-400"
                             : "text-slate-400 dark:text-slate-500 group-hover/sidebar:text-slate-700 dark:group-hover/sidebar:text-slate-300"
                     )
                 })}
             </div>
-            
+
             <motion.span
                 animate={{
-                    display: animate ? (open ? "inline-block" : "none") : "inline-block",
                     opacity: animate ? (open ? 1 : 0) : 1,
+                    x: animate ? (open ? 0 : -10) : 0,
+                    width: animate ? (open ? "auto" : 0) : "auto",
                 }}
-                transition={{ duration: 0.2 }}
+                transition={{
+                    duration: 0.2,
+                    ease: "easeInOut"
+                }}
                 className={cn(
-                    "text-sm font-medium whitespace-pre inline-block !p-0 !m-0",
+                    "text-sm font-medium whitespace-pre overflow-hidden z-20 relative",
                     active ? "text-blue-700 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"
                 )}
             >
