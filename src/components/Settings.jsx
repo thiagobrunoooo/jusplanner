@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { User, Settings as SettingsIcon, Moon, Sun, Monitor, Save, Database, AlertTriangle, LogOut, Camera } from 'lucide-react';
+import { User, Settings as SettingsIcon, Moon, Sun, Monitor, Save, Database, AlertTriangle, LogOut, Camera, BookMarked } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '../contexts/AuthContext';
+import SubjectsEditor from './SubjectsEditor';
 
 const Settings = ({ userName, setUserName, userAvatar, setUserAvatar, setShowBackup, onReset, onManualSave }) => {
   const { theme, setTheme } = useTheme();
@@ -232,6 +233,15 @@ const Settings = ({ userName, setUserName, userAvatar, setUserAvatar, setShowBac
           </div>
         </div>
       </section >
+
+      {/* SECTION 3: SUBJECTS MANAGEMENT */}
+      <section className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
+          <BookMarked className="text-emerald-500" size={24} />
+          Banco de Matérias
+        </h3>
+        <SubjectsEditor />
+      </section>
     </div >
   );
 };
