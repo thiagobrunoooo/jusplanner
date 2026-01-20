@@ -11,7 +11,7 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useSchedules } from '../hooks/useSchedules';
-import { SUBJECTS } from '../data/subjects';
+import { useSubjects } from '../hooks/useSubjects.jsx';
 import { ICON_MAP } from '../lib/icons';
 import { generateDynamicSchedule, getWeekDescription } from '../lib/scheduleGenerator';
 
@@ -77,18 +77,21 @@ const SCHEDULE = {
 };
 
 const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, setNotes }) => {
+    const { subjects } = useSubjects();
     const { activeSchedule, filteredSubjects, loading: scheduleLoading } = useSchedules();
     const [selectedWeek, setSelectedWeek] = useState('week1');
     const [selectedDay, setSelectedDay] = useState('Dia 01');
     const [expandedCard, setExpandedCard] = useState(null);
 
-    // Generate dynamic schedule based on active schedule topics
+    // Generate dynamic schedule based on active schedule topics and settings
     const dynamicSchedule = useMemo(() => {
         if (!activeSchedule?.topicIds || activeSchedule.topicIds.length === 0) {
             return SCHEDULE;
         }
-        return generateDynamicSchedule(activeSchedule.topicIds, SUBJECTS);
-    }, [activeSchedule?.topicIds]);
+        // Pass settings to the generator
+        const settings = activeSchedule.settings || {};
+        return generateDynamicSchedule(activeSchedule.topicIds, subjects, settings);
+    }, [activeSchedule?.topicIds, activeSchedule?.settings, subjects]);
 
     // Available weeks list
     const weeks = useMemo(() => Object.keys(dynamicSchedule).sort(), [dynamicSchedule]);
@@ -128,7 +131,7 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
     };
 
     const currentDayTopicsIds = dynamicSchedule[selectedWeek]?.[selectedDay] || [];
-    const currentDayTopics = SUBJECTS.flatMap(s => s.topics).filter(t => currentDayTopicsIds.includes(t.id));
+    const currentDayTopics = subjects.flatMap(s => s.topics).filter(t => currentDayTopicsIds.includes(t.id));
 
     // Calculate daily progress
     const totalTasks = currentDayTopics.length * 3;
@@ -148,7 +151,7 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Cronograma Semanal</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">
                         {activeSchedule ? (
-                            <>Semana {selectedWeek.replace('week', '')}: {getWeekDescription(dynamicSchedule, selectedWeek, SUBJECTS)}</>
+                            <>Semana {selectedWeek.replace('week', '')}: {getWeekDescription(dynamicSchedule, selectedWeek, subjects)}</>
                         ) : (
                             'Selecione um cronograma para ver seu plano de estudos'
                         )}
@@ -252,7 +255,7 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                     currentDayTopics.map((topic) => {
                         const isExpanded = expandedCard === topic.id;
                         const topicProgress = progress[topic.id] || {};
-                        const parentSubject = SUBJECTS.find(s => s.topics.find(t => t.id === topic.id));
+                        const parentSubject = subjects.find(s => s.topics.find(t => t.id === topic.id));
                         const SubjectIcon = parentSubject ? (ICON_MAP[parentSubject.icon] || BookOpen) : BookOpen;
 
                         return (

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, createContext, useContext, createElement, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { SUBJECTS } from '../data/subjects';
+import { useSubjectsData } from './useSubjects.jsx';
 
 const ScheduleContext = createContext(null);
 
 export function ScheduleProvider(props) {
     const { user } = useAuth();
+    const subjects = useSubjectsData(); // Get subjects from context or defaults
     const [schedules, setSchedules] = useState([]);
     const [activeSchedule, setActiveScheduleState] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -30,7 +31,8 @@ export function ScheduleProvider(props) {
 
             const transformed = (schedulesData || []).map(s => ({
                 ...s,
-                topicIds: s.schedule_topics?.map(t => t.topic_id) || []
+                topicIds: s.schedule_topics?.map(t => t.topic_id) || [],
+                settings: s.settings || {} // Include settings
             }));
 
             setSchedules(transformed);
@@ -49,7 +51,8 @@ export function ScheduleProvider(props) {
         loadSchedules();
     }, [loadSchedules]);
 
-    const createSchedule = async (name, topicIds, isPreset = false) => {
+    // Criar cronograma com settings
+    const createSchedule = async (name, topicIds, isPreset = false, settings = {}) => {
         if (!user) return null;
 
         try {
@@ -59,7 +62,8 @@ export function ScheduleProvider(props) {
                     user_id: user.id,
                     name,
                     is_preset: isPreset,
-                    is_active: schedules.length === 0
+                    is_active: schedules.length === 0,
+                    settings: settings // Save settings
                 })
                 .select()
                 .single();
@@ -133,6 +137,7 @@ export function ScheduleProvider(props) {
         }
     };
 
+    // Atualizar tópicos de um cronograma (mantido para compatibilidade)
     const updateScheduleTopics = async (scheduleId, topicIds) => {
         if (!user) return;
 
@@ -160,17 +165,60 @@ export function ScheduleProvider(props) {
         }
     };
 
-    // Filtra SUBJECTS baseado nos tópicos do cronograma ativo
+    // Atualizar cronograma completo (nome, tópicos + settings)
+    const updateSchedule = async (scheduleId, { name, topicIds, settings }) => {
+        if (!user) return;
+
+        try {
+            // Atualiza nome e settings se fornecidos
+            const updateData = {};
+            if (name) updateData.name = name;
+            if (settings) updateData.settings = settings;
+
+            if (Object.keys(updateData).length > 0) {
+                const { error: updateError } = await supabase
+                    .from('schedules')
+                    .update(updateData)
+                    .eq('id', scheduleId);
+
+                if (updateError) throw updateError;
+            }
+
+            // Atualiza tópicos se fornecido
+            if (topicIds) {
+                await supabase
+                    .from('schedule_topics')
+                    .delete()
+                    .eq('schedule_id', scheduleId);
+
+                if (topicIds.length > 0) {
+                    const topicsToInsert = topicIds.map(topic_id => ({
+                        schedule_id: scheduleId,
+                        topic_id
+                    }));
+
+                    await supabase
+                        .from('schedule_topics')
+                        .insert(topicsToInsert);
+                }
+            }
+
+            await loadSchedules();
+
+        } catch (err) {
+            console.error('Failed to update schedule:', err);
+        }
+    };
+
+    // Filtra subjects baseado nos tópicos do cronograma ativo (usando subjects dinâmicos)
     const filteredSubjects = useMemo(() => {
         if (!activeSchedule || !activeSchedule.topicIds || activeSchedule.topicIds.length === 0) {
-            // Se não há cronograma ativo, retorna todos
-            return SUBJECTS;
+            return subjects;
         }
 
         const activeTopicIds = new Set(activeSchedule.topicIds);
 
-        // Filtra subjects que têm pelo menos um tópico selecionado
-        return SUBJECTS.map(subject => {
+        return subjects.map(subject => {
             const filteredTopics = subject.topics.filter(topic => activeTopicIds.has(topic.id));
             if (filteredTopics.length === 0) return null;
             return {
@@ -178,7 +226,7 @@ export function ScheduleProvider(props) {
                 topics: filteredTopics
             };
         }).filter(Boolean);
-    }, [activeSchedule]);
+    }, [activeSchedule, subjects]);
 
     const value = {
         schedules,
@@ -189,6 +237,7 @@ export function ScheduleProvider(props) {
         setActiveSchedule,
         deleteSchedule,
         updateScheduleTopics,
+        updateSchedule, // New function
         reload: loadSchedules
     };
 
