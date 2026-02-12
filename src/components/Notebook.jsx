@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight, ChevronDown, BookOpen, Save, FileText, Download, Type, AlignLeft, Bold, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ICON_MAP } from '../lib/icons';
-import { useSubjects } from '../hooks/useStudyData';
+import { useSubjects } from '../hooks/useSubjects.jsx';
 
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'quill/dist/quill.snow.css';
