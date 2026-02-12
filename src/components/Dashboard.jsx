@@ -33,7 +33,8 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     const { dynamicSchedule } = useMemo(() => {
         const topics = activeSchedule ? activeSchedule.topicIds : [];
         if (!filteredSubjects || filteredSubjects.length === 0) return { dynamicSchedule: {} };
-        return { dynamicSchedule: generateDynamicSchedule(topics, SUBJECTS) };
+        const settings = activeSchedule?.settings || {};
+        return { dynamicSchedule: generateDynamicSchedule(topics, filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS, settings) };
     }, [activeSchedule, filteredSubjects]);
 
     const stats = useMemo(() => {
