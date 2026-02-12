@@ -403,6 +403,16 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                                         />
                                     </motion.div>
                                 </div>
+                                {reminders.filter(r => r.topic_id === topic.id && !r.is_done).length > 0 && !isExpanded && (
+                                    <div className="px-6 pb-4 flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 rounded-full">
+                                            <StickyNote size={10} className="text-amber-500" />
+                                            <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                                                {reminders.filter(r => r.topic_id === topic.id && !r.is_done).length} aviso(s)
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <AnimatePresence initial={false}>
                                     {isExpanded && (
@@ -428,6 +438,78 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                                             className="overflow-hidden"
                                         >
                                             <div className="px-6 pb-6 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+
+                                                {/* Topic Reminders Section */}
+                                                <div className="mb-6">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                            <StickyNote size={14} />
+                                                            Avisos & Observações
+                                                        </h4>
+                                                    </div>
+
+                                                    <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/30 overflow-hidden">
+                                                        {/* List of reminders for this topic */}
+                                                        {reminders.filter(r => r.topic_id === topic.id).length > 0 && (
+                                                            <div className="divide-y divide-amber-100 dark:divide-amber-800/30">
+                                                                {reminders.filter(r => r.topic_id === topic.id).map(r => (
+                                                                    <div key={r.id} className="px-4 py-2 flex items-center gap-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors group">
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); toggleDone(r.id); }}
+                                                                            className={cn(
+                                                                                "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all",
+                                                                                r.is_done
+                                                                                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                                                    : 'border-amber-300 dark:border-amber-700 hover:border-emerald-400 bg-white dark:bg-slate-800'
+                                                                            )}
+                                                                        >
+                                                                            {r.is_done && <Check size={10} />}
+                                                                        </button>
+                                                                        <span className={cn(
+                                                                            "flex-1 text-xs text-slate-600 dark:text-slate-300",
+                                                                            r.is_done && "line-through opacity-50"
+                                                                        )}>
+                                                                            {r.content}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); deleteReminder(r.id); }}
+                                                                            className="p-1 text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Quick Add for Topic */}
+                                                        <form
+                                                            onSubmit={(e) => {
+                                                                e.preventDefault();
+                                                                const input = e.target.elements.topicReminder;
+                                                                if (input.value.trim()) {
+                                                                    addReminder({
+                                                                        content: input.value.trim(),
+                                                                        topicId: topic.id,
+                                                                        subjectId: parentSubject?.id,
+                                                                        color: 'amber'
+                                                                    });
+                                                                    input.value = '';
+                                                                }
+                                                            }}
+                                                            className="px-4 py-2 border-t border-amber-100 dark:border-amber-800/30 bg-white/50 dark:bg-slate-900/50 flex items-center gap-2"
+                                                        >
+                                                            <Plus size={12} className="text-amber-400" />
+                                                            <input
+                                                                name="topicReminder"
+                                                                type="text"
+                                                                placeholder="Adicionar observação sobre este tópico..."
+                                                                className="flex-1 bg-transparent text-xs border-none focus:ring-0 p-0 text-slate-600 dark:text-slate-300 placeholder:text-slate-400"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </form>
+                                                    </div>
+                                                </div>
 
                                                 {/* Subtopics List */}
                                                 <div className="mt-6 mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
