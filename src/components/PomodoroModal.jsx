@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Clock,
@@ -23,6 +23,15 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const [selectedSubject, setSelectedSubject] = useState('');
     const [startTime, setStartTime] = useState(null);
 
+    // Refs to access current values inside the interval callback without re-creating it
+    const selectedSubjectRef = useRef(selectedSubject);
+    const startTimeRef = useRef(startTime);
+    const onUpdateStudyTimeRef = useRef(onUpdateStudyTime);
+
+    useEffect(() => { selectedSubjectRef.current = selectedSubject; }, [selectedSubject]);
+    useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
+    useEffect(() => { onUpdateStudyTimeRef.current = onUpdateStudyTime; }, [onUpdateStudyTime]);
+
     const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
 
     // Quick presets
@@ -38,24 +47,30 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const circumference = 2 * Math.PI * 120;
     const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-    // Track elapsed time when active
+    // Timer tick effect — interval is created once when isActive becomes true
+    // and destroyed when isActive becomes false. No dependency on timeLeft.
     useEffect(() => {
         let interval = null;
         if (isActive) {
             if (!startTime) setStartTime(Date.now());
 
             interval = setInterval(() => {
-                if (timeLeft > 0) {
-                    setTimeLeft(timeLeft - 1);
-                } else {
-                    setIsActive(false);
-                    // Timer finished naturally
-                    if (selectedSubject && startTime) {
-                        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-                        onUpdateStudyTime(selectedSubject, elapsedSeconds);
-                        setStartTime(null);
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        // Timer finished — schedule state updates for next tick
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            setIsActive(false);
+                            if (selectedSubjectRef.current && startTimeRef.current) {
+                                const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+                                onUpdateStudyTimeRef.current(selectedSubjectRef.current, elapsedSeconds);
+                                setStartTime(null);
+                            }
+                        }, 0);
+                        return 0;
                     }
-                }
+                    return prev - 1;
+                });
             }, 1000);
         } else {
             // Timer paused or stopped
@@ -68,7 +83,7 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
             setStartTime(null);
         }
         return () => clearInterval(interval);
-    }, [isActive, timeLeft, selectedSubject, startTime, onUpdateStudyTime]);
+    }, [isActive]); // Only re-run when isActive changes
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
