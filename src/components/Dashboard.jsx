@@ -1,12 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     BookOpen,
     Calendar,
     Clock,
     CheckCircle2,
     Brain,
-    Target
+    Target,
+    Pin,
+    PinOff,
+    Trash2,
+    Plus,
+    StickyNote,
+    Check,
 } from 'lucide-react';
 import {
     LineChart,
@@ -25,11 +31,15 @@ import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { SUBJECTS } from '../data/subjects';
 import { generateDynamicSchedule } from '../lib/scheduleGenerator';
+import { useReminders } from '../hooks/useReminders';
 
 
 
 const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     const { filteredSubjects, activeSchedule } = useSchedules();
+    const { todayReminders, pendingCount, addReminder, toggleDone, togglePin, deleteReminder } = useReminders();
+    const [newReminderText, setNewReminderText] = useState('');
+    const [reminderColor, setReminderColor] = useState('blue');
     const { dynamicSchedule } = useMemo(() => {
         const topics = activeSchedule ? activeSchedule.topicIds : [];
         if (!filteredSubjects || filteredSubjects.length === 0) return { dynamicSchedule: {} };
@@ -596,6 +606,166 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                         </div>
                     </div>
                 </motion.div>
+            </motion.div>
+
+            {/* SECTION 2.5: REMINDERS / QUADRO DE AVISOS */}
+            <motion.div
+                variants={cardVariants}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors"
+            >
+                <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-xl">
+                                <StickyNote size={20} className="text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Quadro de Avisos</h3>
+                                <p className="text-xs text-slate-400 dark:text-slate-500">
+                                    {pendingCount > 0 ? `${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : 'Nenhum aviso pendente'}
+                                </p>
+                            </div>
+                        </div>
+                        {pendingCount > 0 && (
+                            <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full">
+                                {pendingCount}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Add */}
+                <div className="p-4 border-b border-slate-50 dark:border-slate-800/50">
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (newReminderText.trim()) {
+                                addReminder({ content: newReminderText, color: reminderColor });
+                                setNewReminderText('');
+                            }
+                        }}
+                        className="flex items-center gap-2"
+                    >
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={newReminderText}
+                                onChange={(e) => setNewReminderText(e.target.value)}
+                                placeholder="Adicionar lembrete..."
+                                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 dark:focus:border-amber-500 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                            />
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setReminderColor(c)}
+                                    className={cn(
+                                        "w-5 h-5 rounded-full transition-all border-2",
+                                        c === 'blue' && 'bg-blue-500',
+                                        c === 'amber' && 'bg-amber-500',
+                                        c === 'red' && 'bg-red-500',
+                                        c === 'green' && 'bg-emerald-500',
+                                        c === 'purple' && 'bg-purple-500',
+                                        reminderColor === c ? 'border-slate-800 dark:border-white scale-110' : 'border-transparent opacity-50 hover:opacity-80'
+                                    )}
+                                />
+                            ))}
+                        </div>
+                        <motion.button
+                            type="submit"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            disabled={!newReminderText.trim()}
+                            className="p-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shadow-sm"
+                        >
+                            <Plus size={16} />
+                        </motion.button>
+                    </form>
+                </div>
+
+                {/* Reminders List */}
+                <div className="max-h-[280px] overflow-y-auto">
+                    {todayReminders.length === 0 ? (
+                        <div className="p-8 text-center">
+                            <StickyNote size={32} className="mx-auto mb-2 text-slate-200 dark:text-slate-700" />
+                            <p className="text-sm text-slate-400 dark:text-slate-500">Sem avisos para hoje</p>
+                            <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">Adicione lembretes sobre suas matérias de estudo</p>
+                        </div>
+                    ) : (
+                        <AnimatePresence>
+                            {todayReminders.map((reminder) => {
+                                const colorMap = {
+                                    blue: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20',
+                                    amber: 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20',
+                                    red: 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
+                                    green: 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20',
+                                    purple: 'border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20',
+                                };
+
+                                return (
+                                    <motion.div
+                                        key={reminder.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20, height: 0 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                        className={cn(
+                                            "px-4 py-3 border-l-4 border-b border-b-slate-100 dark:border-b-slate-800/50 flex items-center gap-3 group",
+                                            colorMap[reminder.color] || colorMap.blue,
+                                            reminder.is_done && 'opacity-50'
+                                        )}
+                                    >
+                                        {/* Done checkbox */}
+                                        <button
+                                            onClick={() => toggleDone(reminder.id)}
+                                            className={cn(
+                                                "w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                                                reminder.is_done
+                                                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                    : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+                                            )}
+                                        >
+                                            {reminder.is_done && <Check size={12} />}
+                                        </button>
+
+                                        {/* Content */}
+                                        <p className={cn(
+                                            "flex-1 text-sm text-slate-700 dark:text-slate-300",
+                                            reminder.is_done && 'line-through text-slate-400 dark:text-slate-500'
+                                        )}>
+                                            {reminder.content}
+                                        </p>
+
+                                        {/* Actions */}
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => togglePin(reminder.id)}
+                                                className="p-1.5 text-slate-400 hover:text-amber-500 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                                title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}
+                                            >
+                                                {reminder.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                                            </button>
+                                            <button
+                                                onClick={() => deleteReminder(reminder.id)}
+                                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+
+                                        {/* Pin indicator */}
+                                        {reminder.is_pinned && (
+                                            <Pin size={12} className="text-amber-500 flex-shrink-0" />
+                                        )}
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    )}
+                </div>
             </motion.div>
 
             {/* SECTION 3: CHARTS */}

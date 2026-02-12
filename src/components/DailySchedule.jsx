@@ -6,13 +6,19 @@ import {
     CheckCircle2,
     Circle,
     ChevronDown,
-    MoreVertical
+    MoreVertical,
+    StickyNote,
+    Plus,
+    Pin,
+    Check,
+    Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { useSubjects } from '../hooks/useSubjects.jsx';
 import { ICON_MAP } from '../lib/icons';
 import { generateDynamicSchedule, getWeekDescription } from '../lib/scheduleGenerator';
+import { useReminders } from '../hooks/useReminders';
 
 
 
@@ -79,6 +85,8 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
     const [selectedWeek, setSelectedWeek] = useState('week1');
     const [selectedDay, setSelectedDay] = useState('Dia 01');
     const [expandedCard, setExpandedCard] = useState(null);
+    const { getRemindersByDate, addReminder, toggleDone, deleteReminder, reminders } = useReminders();
+    const [scheduleReminderText, setScheduleReminderText] = useState('');
 
     // Generate dynamic schedule based on active schedule topics and settings
     const dynamicSchedule = useMemo(() => {
@@ -238,6 +246,92 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                     </div>
                 </div>
             </div>
+
+            {/* Day Reminders Bar */}
+            {(() => {
+                const dayNumber = parseInt(selectedDay.replace('Dia ', ''));
+                const dayDate = new Date();
+                dayDate.setDate(dayDate.getDate() + (dayNumber - 1));
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const dayReminders = reminders.filter(r => r.target_date === dateStr || (r.is_pinned && !r.is_done));
+
+                return dayReminders.length > 0 || true ? (
+                    <div className="bg-amber-50/80 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-800/40 overflow-hidden">
+                        <div className="px-4 py-2.5 flex items-center justify-between border-b border-amber-200/40 dark:border-amber-800/30">
+                            <div className="flex items-center gap-2">
+                                <StickyNote size={14} className="text-amber-600 dark:text-amber-400" />
+                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Avisos do Dia</span>
+                                {dayReminders.filter(r => !r.is_done).length > 0 && (
+                                    <span className="px-1.5 py-0.5 bg-amber-200 dark:bg-amber-800/50 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full">
+                                        {dayReminders.filter(r => !r.is_done).length}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Quick add for this day */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (scheduleReminderText.trim()) {
+                                    addReminder({ content: scheduleReminderText, targetDate: dateStr });
+                                    setScheduleReminderText('');
+                                }
+                            }}
+                            className="px-4 py-2 flex items-center gap-2 border-b border-amber-100/60 dark:border-amber-900/30"
+                        >
+                            <input
+                                type="text"
+                                value={scheduleReminderText}
+                                onChange={(e) => setScheduleReminderText(e.target.value)}
+                                placeholder="Adicionar aviso para este dia..."
+                                className="flex-1 px-2.5 py-1.5 text-xs bg-white/80 dark:bg-slate-800/80 border border-amber-200 dark:border-amber-800/50 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!scheduleReminderText.trim()}
+                                className="p-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 text-white rounded-md transition-colors"
+                            >
+                                <Plus size={12} />
+                            </button>
+                        </form>
+
+                        {/* Reminders list */}
+                        {dayReminders.length > 0 && (
+                            <div className="divide-y divide-amber-100/60 dark:divide-amber-900/30">
+                                {dayReminders.map(r => (
+                                    <div key={r.id} className="px-4 py-2 flex items-center gap-2.5 group">
+                                        <button
+                                            onClick={() => toggleDone(r.id)}
+                                            className={cn(
+                                                "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all",
+                                                r.is_done
+                                                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                    : 'border-amber-400 dark:border-amber-600 hover:border-emerald-400'
+                                            )}
+                                        >
+                                            {r.is_done && <Check size={10} />}
+                                        </button>
+                                        <span className={cn(
+                                            "flex-1 text-xs text-slate-700 dark:text-slate-300",
+                                            r.is_done && 'line-through opacity-50'
+                                        )}>
+                                            {r.content}
+                                        </span>
+                                        {r.is_pinned && <Pin size={10} className="text-amber-500 flex-shrink-0" />}
+                                        <button
+                                            onClick={() => deleteReminder(r.id)}
+                                            className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : null;
+            })()}
 
             <div className="grid gap-4">
                 {currentDayTopics.length === 0 ? (
