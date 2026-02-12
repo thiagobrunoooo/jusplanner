@@ -13,6 +13,8 @@ import {
     Plus,
     StickyNote,
     Check,
+    Pencil,
+    X,
 } from 'lucide-react';
 import {
     LineChart,
@@ -37,9 +39,11 @@ import { useReminders } from '../hooks/useReminders';
 
 const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     const { filteredSubjects, activeSchedule } = useSchedules();
-    const { todayReminders, pendingCount, addReminder, toggleDone, togglePin, deleteReminder } = useReminders();
+    const { todayReminders, pendingCount, addReminder, updateReminder, toggleDone, togglePin, deleteReminder } = useReminders();
     const [newReminderText, setNewReminderText] = useState('');
     const [reminderColor, setReminderColor] = useState('blue');
+    const [editingId, setEditingId] = useState(null);
+    const [editingText, setEditingText] = useState('');
     const { dynamicSchedule } = useMemo(() => {
         const topics = activeSchedule ? activeSchedule.topicIds : [];
         if (!filteredSubjects || filteredSubjects.length === 0) return { dynamicSchedule: {} };
@@ -611,154 +615,183 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
             {/* SECTION 2.5: REMINDERS / QUADRO DE AVISOS */}
             <motion.div
                 variants={cardVariants}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors"
+                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-100/80 dark:border-slate-800/60 shadow-sm overflow-hidden transition-colors"
             >
-                <div className="p-5 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-xl">
-                                <StickyNote size={20} className="text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Quadro de Avisos</h3>
-                                <p className="text-xs text-slate-400 dark:text-slate-500">
-                                    {pendingCount > 0 ? `${pendingCount} pendente${pendingCount > 1 ? 's' : ''}` : 'Nenhum aviso pendente'}
-                                </p>
-                            </div>
+                {/* Header — compact */}
+                <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                            <StickyNote size={15} className="text-amber-500 dark:text-amber-400" />
                         </div>
-                        {pendingCount > 0 && (
-                            <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-full">
-                                {pendingCount}
-                            </span>
-                        )}
+                        <h3 className="font-semibold text-slate-700 dark:text-slate-200 text-[13px]">Avisos</h3>
                     </div>
+                    {pendingCount > 0 && (
+                        <span className="min-w-[20px] h-5 flex items-center justify-center px-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full">
+                            {pendingCount}
+                        </span>
+                    )}
                 </div>
 
-                {/* Quick Add */}
-                <div className="p-4 border-b border-slate-50 dark:border-slate-800/50">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            if (newReminderText.trim()) {
-                                addReminder({ content: newReminderText, color: reminderColor });
-                                setNewReminderText('');
-                            }
-                        }}
-                        className="flex items-center gap-2"
-                    >
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={newReminderText}
-                                onChange={(e) => setNewReminderText(e.target.value)}
-                                placeholder="Adicionar lembrete..."
-                                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 dark:focus:border-amber-500 text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                {/* Quick Add — slim */}
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (newReminderText.trim()) {
+                            addReminder({ content: newReminderText, color: reminderColor });
+                            setNewReminderText('');
+                        }
+                    }}
+                    className="px-4 pb-3 flex items-center gap-2"
+                >
+                    <input
+                        type="text"
+                        value={newReminderText}
+                        onChange={(e) => setNewReminderText(e.target.value)}
+                        placeholder="Novo aviso..."
+                        className="flex-1 px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400/60 focus:border-amber-300 dark:focus:border-amber-600 text-slate-600 dark:text-slate-300 placeholder:text-slate-350"
+                    />
+                    <div className="flex items-center gap-0.5">
+                        {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
+                            <button
+                                key={c}
+                                type="button"
+                                onClick={() => setReminderColor(c)}
+                                className={cn(
+                                    "w-3.5 h-3.5 rounded-full transition-all",
+                                    c === 'blue' && 'bg-blue-400',
+                                    c === 'amber' && 'bg-amber-400',
+                                    c === 'red' && 'bg-rose-400',
+                                    c === 'green' && 'bg-emerald-400',
+                                    c === 'purple' && 'bg-violet-400',
+                                    reminderColor === c ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-40 hover:opacity-70'
+                                )}
                             />
-                        </div>
-                        <div className="flex items-center gap-1">
-                            {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
-                                <button
-                                    key={c}
-                                    type="button"
-                                    onClick={() => setReminderColor(c)}
-                                    className={cn(
-                                        "w-5 h-5 rounded-full transition-all border-2",
-                                        c === 'blue' && 'bg-blue-500',
-                                        c === 'amber' && 'bg-amber-500',
-                                        c === 'red' && 'bg-red-500',
-                                        c === 'green' && 'bg-emerald-500',
-                                        c === 'purple' && 'bg-purple-500',
-                                        reminderColor === c ? 'border-slate-800 dark:border-white scale-110' : 'border-transparent opacity-50 hover:opacity-80'
-                                    )}
-                                />
-                            ))}
-                        </div>
-                        <motion.button
-                            type="submit"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            disabled={!newReminderText.trim()}
-                            className="p-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shadow-sm"
-                        >
-                            <Plus size={16} />
-                        </motion.button>
-                    </form>
-                </div>
+                        ))}
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={!newReminderText.trim()}
+                        className="p-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                    >
+                        <Plus size={13} />
+                    </button>
+                </form>
 
-                {/* Reminders List */}
-                <div className="max-h-[280px] overflow-y-auto">
+                {/* List */}
+                <div className="max-h-[220px] overflow-y-auto border-t border-slate-100/60 dark:border-slate-800/40">
                     {todayReminders.length === 0 ? (
-                        <div className="p-8 text-center">
-                            <StickyNote size={32} className="mx-auto mb-2 text-slate-200 dark:text-slate-700" />
-                            <p className="text-sm text-slate-400 dark:text-slate-500">Sem avisos para hoje</p>
-                            <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">Adicione lembretes sobre suas matérias de estudo</p>
+                        <div className="py-6 text-center">
+                            <p className="text-xs text-slate-400 dark:text-slate-500">Sem avisos para hoje</p>
                         </div>
                     ) : (
                         <AnimatePresence>
                             {todayReminders.map((reminder) => {
-                                const colorMap = {
-                                    blue: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20',
-                                    amber: 'border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20',
-                                    red: 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
-                                    green: 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20',
-                                    purple: 'border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20',
+                                const dotColor = {
+                                    blue: 'bg-blue-400',
+                                    amber: 'bg-amber-400',
+                                    red: 'bg-rose-400',
+                                    green: 'bg-emerald-400',
+                                    purple: 'bg-violet-400',
                                 };
+                                const isEditing = editingId === reminder.id;
 
                                 return (
                                     <motion.div
                                         key={reminder.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20, height: 0 }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                                         className={cn(
-                                            "px-4 py-3 border-l-4 border-b border-b-slate-100 dark:border-b-slate-800/50 flex items-center gap-3 group",
-                                            colorMap[reminder.color] || colorMap.blue,
-                                            reminder.is_done && 'opacity-50'
+                                            "px-4 py-2 flex items-center gap-2.5 group border-b border-slate-50 dark:border-slate-800/30 last:border-b-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors",
+                                            reminder.is_done && 'opacity-45'
                                         )}
                                     >
-                                        {/* Done checkbox */}
+                                        {/* Color dot + checkbox */}
                                         <button
                                             onClick={() => toggleDone(reminder.id)}
                                             className={cn(
-                                                "w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                                                "w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all",
                                                 reminder.is_done
                                                     ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                    : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+                                                    : `border-slate-300 dark:border-slate-600 hover:border-emerald-400`
                                             )}
                                         >
-                                            {reminder.is_done && <Check size={12} />}
+                                            {reminder.is_done ? (
+                                                <Check size={9} strokeWidth={3} />
+                                            ) : (
+                                                <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[reminder.color] || dotColor.blue)} />
+                                            )}
                                         </button>
 
-                                        {/* Content */}
-                                        <p className={cn(
-                                            "flex-1 text-sm text-slate-700 dark:text-slate-300",
-                                            reminder.is_done && 'line-through text-slate-400 dark:text-slate-500'
-                                        )}>
-                                            {reminder.content}
-                                        </p>
-
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => togglePin(reminder.id)}
-                                                className="p-1.5 text-slate-400 hover:text-amber-500 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                                title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}
+                                        {/* Content / Edit mode */}
+                                        {isEditing ? (
+                                            <form
+                                                className="flex-1 flex items-center gap-1.5"
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
+                                                    if (editingText.trim()) {
+                                                        updateReminder(reminder.id, { content: editingText.trim() });
+                                                    }
+                                                    setEditingId(null);
+                                                }}
                                             >
-                                                {reminder.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
-                                            </button>
-                                            <button
-                                                onClick={() => deleteReminder(reminder.id)}
-                                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                                title="Excluir"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
+                                                <input
+                                                    type="text"
+                                                    value={editingText}
+                                                    onChange={(e) => setEditingText(e.target.value)}
+                                                    autoFocus
+                                                    className="flex-1 px-2 py-0.5 text-xs bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 text-slate-700 dark:text-slate-200"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Escape') setEditingId(null);
+                                                    }}
+                                                />
+                                                <button type="submit" className="p-0.5 text-emerald-500 hover:text-emerald-600 transition-colors">
+                                                    <Check size={13} />
+                                                </button>
+                                                <button type="button" onClick={() => setEditingId(null)} className="p-0.5 text-slate-400 hover:text-slate-600 transition-colors">
+                                                    <X size={13} />
+                                                </button>
+                                            </form>
+                                        ) : (
+                                            <p className={cn(
+                                                "flex-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed",
+                                                reminder.is_done && 'line-through text-slate-400 dark:text-slate-500'
+                                            )}>
+                                                {reminder.content}
+                                            </p>
+                                        )}
 
-                                        {/* Pin indicator */}
-                                        {reminder.is_pinned && (
-                                            <Pin size={12} className="text-amber-500 flex-shrink-0" />
+                                        {/* Pin badge */}
+                                        {reminder.is_pinned && !isEditing && (
+                                            <Pin size={10} className="text-amber-400 flex-shrink-0" />
+                                        )}
+
+                                        {/* Actions — appear on hover */}
+                                        {!isEditing && (
+                                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => { setEditingId(reminder.id); setEditingText(reminder.content); }}
+                                                    className="p-1 text-slate-300 hover:text-blue-500 dark:text-slate-600 dark:hover:text-blue-400 rounded transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <Pencil size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={() => togglePin(reminder.id)}
+                                                    className="p-1 text-slate-300 hover:text-amber-500 dark:text-slate-600 dark:hover:text-amber-400 rounded transition-colors"
+                                                    title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}
+                                                >
+                                                    {reminder.is_pinned ? <PinOff size={12} /> : <Pin size={12} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteReminder(reminder.id)}
+                                                    className="p-1 text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 rounded transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
                                         )}
                                     </motion.div>
                                 );
