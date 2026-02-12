@@ -612,196 +612,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                 </motion.div>
             </motion.div>
 
-            {/* SECTION 2.5: REMINDERS / QUADRO DE AVISOS */}
-            <motion.div
-                variants={cardVariants}
-                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-100/80 dark:border-slate-800/60 shadow-sm overflow-hidden transition-colors"
-            >
-                {/* Header — compact */}
-                <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                            <StickyNote size={15} className="text-amber-500 dark:text-amber-400" />
-                        </div>
-                        <h3 className="font-semibold text-slate-700 dark:text-slate-200 text-[13px]">Avisos</h3>
-                    </div>
-                    {pendingCount > 0 && (
-                        <span className="min-w-[20px] h-5 flex items-center justify-center px-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full">
-                            {pendingCount}
-                        </span>
-                    )}
-                </div>
-
-                {/* Quick Add — slim */}
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        if (newReminderText.trim()) {
-                            addReminder({ content: newReminderText, color: reminderColor });
-                            setNewReminderText('');
-                        }
-                    }}
-                    className="px-4 pb-3 flex items-center gap-2"
-                >
-                    <input
-                        type="text"
-                        value={newReminderText}
-                        onChange={(e) => setNewReminderText(e.target.value)}
-                        placeholder="Novo aviso..."
-                        className="flex-1 px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400/60 focus:border-amber-300 dark:focus:border-amber-600 text-slate-600 dark:text-slate-300 placeholder:text-slate-350"
-                    />
-                    <div className="flex items-center gap-0.5">
-                        {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
-                            <button
-                                key={c}
-                                type="button"
-                                onClick={() => setReminderColor(c)}
-                                className={cn(
-                                    "w-3.5 h-3.5 rounded-full transition-all",
-                                    c === 'blue' && 'bg-blue-400',
-                                    c === 'amber' && 'bg-amber-400',
-                                    c === 'red' && 'bg-rose-400',
-                                    c === 'green' && 'bg-emerald-400',
-                                    c === 'purple' && 'bg-violet-400',
-                                    reminderColor === c ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-offset-slate-900 scale-110' : 'opacity-40 hover:opacity-70'
-                                )}
-                            />
-                        ))}
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={!newReminderText.trim()}
-                        className="p-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                    >
-                        <Plus size={13} />
-                    </button>
-                </form>
-
-                {/* List */}
-                <div className="max-h-[220px] overflow-y-auto border-t border-slate-100/60 dark:border-slate-800/40">
-                    {todayReminders.length === 0 ? (
-                        <div className="py-6 text-center">
-                            <p className="text-xs text-slate-400 dark:text-slate-500">Sem avisos para hoje</p>
-                        </div>
-                    ) : (
-                        <AnimatePresence>
-                            {todayReminders.map((reminder) => {
-                                const dotColor = {
-                                    blue: 'bg-blue-400',
-                                    amber: 'bg-amber-400',
-                                    red: 'bg-rose-400',
-                                    green: 'bg-emerald-400',
-                                    purple: 'bg-violet-400',
-                                };
-                                const isEditing = editingId === reminder.id;
-
-                                return (
-                                    <motion.div
-                                        key={reminder.id}
-                                        initial={{ opacity: 0, y: -8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                        className={cn(
-                                            "px-4 py-2 flex items-center gap-2.5 group border-b border-slate-50 dark:border-slate-800/30 last:border-b-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors",
-                                            reminder.is_done && 'opacity-45'
-                                        )}
-                                    >
-                                        {/* Color dot + checkbox */}
-                                        <button
-                                            onClick={() => toggleDone(reminder.id)}
-                                            className={cn(
-                                                "w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all",
-                                                reminder.is_done
-                                                    ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                    : `border-slate-300 dark:border-slate-600 hover:border-emerald-400`
-                                            )}
-                                        >
-                                            {reminder.is_done ? (
-                                                <Check size={9} strokeWidth={3} />
-                                            ) : (
-                                                <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[reminder.color] || dotColor.blue)} />
-                                            )}
-                                        </button>
-
-                                        {/* Content / Edit mode */}
-                                        {isEditing ? (
-                                            <form
-                                                className="flex-1 flex items-center gap-1.5"
-                                                onSubmit={(e) => {
-                                                    e.preventDefault();
-                                                    if (editingText.trim()) {
-                                                        updateReminder(reminder.id, { content: editingText.trim() });
-                                                    }
-                                                    setEditingId(null);
-                                                }}
-                                            >
-                                                <input
-                                                    type="text"
-                                                    value={editingText}
-                                                    onChange={(e) => setEditingText(e.target.value)}
-                                                    autoFocus
-                                                    className="flex-1 px-2 py-0.5 text-xs bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 text-slate-700 dark:text-slate-200"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Escape') setEditingId(null);
-                                                    }}
-                                                />
-                                                <button type="submit" className="p-0.5 text-emerald-500 hover:text-emerald-600 transition-colors">
-                                                    <Check size={13} />
-                                                </button>
-                                                <button type="button" onClick={() => setEditingId(null)} className="p-0.5 text-slate-400 hover:text-slate-600 transition-colors">
-                                                    <X size={13} />
-                                                </button>
-                                            </form>
-                                        ) : (
-                                            <p className={cn(
-                                                "flex-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed",
-                                                reminder.is_done && 'line-through text-slate-400 dark:text-slate-500'
-                                            )}>
-                                                {reminder.content}
-                                            </p>
-                                        )}
-
-                                        {/* Pin badge */}
-                                        {reminder.is_pinned && !isEditing && (
-                                            <Pin size={10} className="text-amber-400 flex-shrink-0" />
-                                        )}
-
-                                        {/* Actions — appear on hover */}
-                                        {!isEditing && (
-                                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => { setEditingId(reminder.id); setEditingText(reminder.content); }}
-                                                    className="p-1 text-slate-300 hover:text-blue-500 dark:text-slate-600 dark:hover:text-blue-400 rounded transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Pencil size={12} />
-                                                </button>
-                                                <button
-                                                    onClick={() => togglePin(reminder.id)}
-                                                    className="p-1 text-slate-300 hover:text-amber-500 dark:text-slate-600 dark:hover:text-amber-400 rounded transition-colors"
-                                                    title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}
-                                                >
-                                                    {reminder.is_pinned ? <PinOff size={12} /> : <Pin size={12} />}
-                                                </button>
-                                                <button
-                                                    onClick={() => deleteReminder(reminder.id)}
-                                                    className="p-1 text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 rounded transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* SECTION 3: CHARTS */}
+            {/* SECTION 3: CHARTS + AVISOS */}
             <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={containerVariants}>
                 {/* Weekly Activity Chart */}
                 <motion.div
@@ -864,6 +675,171 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                                 <p>Sem dados de questões ainda</p>
                             </div>
                         )}
+                    </div>
+                </motion.div>
+
+                {/* 📌 POST-IT: Quadro de Avisos */}
+                <motion.div
+                    variants={cardVariants}
+                    className="relative lg:col-span-2 xl:col-span-1"
+                >
+                    <div className="relative bg-gradient-to-b from-amber-50 to-yellow-50/80 dark:from-amber-950/30 dark:to-yellow-950/20 rounded-2xl shadow-md dark:shadow-amber-950/20 overflow-hidden transition-colors"
+                        style={{ boxShadow: '2px 4px 16px rgba(217, 168, 50, 0.10), 0 1px 3px rgba(0,0,0,0.04)' }}>
+
+                        {/* Tape decoration */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] w-16 h-5 bg-amber-200/60 dark:bg-amber-700/30 rounded-b-lg z-10" />
+
+                        {/* Folded corner */}
+                        <div className="absolute top-0 right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute -top-3 -right-3 w-6 h-6 bg-amber-200/80 dark:bg-amber-800/40 rotate-45 shadow-inner" />
+                        </div>
+
+                        {/* Header */}
+                        <div className="px-4 pt-6 pb-2 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <StickyNote size={14} className="text-amber-600/70 dark:text-amber-400/70" />
+                                <h3 className="font-semibold text-amber-800 dark:text-amber-300 text-[13px]">Avisos</h3>
+                            </div>
+                            {pendingCount > 0 && (
+                                <span className="min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-amber-300/50 dark:bg-amber-700/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Quick add */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (newReminderText.trim()) {
+                                    addReminder({ content: newReminderText, color: reminderColor });
+                                    setNewReminderText('');
+                                }
+                            }}
+                            className="px-4 pb-2.5 flex items-center gap-1.5"
+                        >
+                            <input
+                                type="text"
+                                value={newReminderText}
+                                onChange={(e) => setNewReminderText(e.target.value)}
+                                placeholder="Novo aviso..."
+                                className="flex-1 px-2.5 py-1.5 text-xs bg-white/70 dark:bg-slate-900/40 border border-amber-200/60 dark:border-amber-800/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400/50 text-amber-900 dark:text-amber-100 placeholder:text-amber-400/60"
+                            />
+                            <div className="flex items-center gap-0.5">
+                                {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setReminderColor(c)}
+                                        className={cn(
+                                            "w-3 h-3 rounded-full transition-all",
+                                            c === 'blue' && 'bg-blue-400',
+                                            c === 'amber' && 'bg-amber-400',
+                                            c === 'red' && 'bg-rose-400',
+                                            c === 'green' && 'bg-emerald-400',
+                                            c === 'purple' && 'bg-violet-400',
+                                            reminderColor === c ? 'ring-[1.5px] ring-offset-1 ring-amber-600/60 dark:ring-offset-amber-950 scale-125' : 'opacity-35 hover:opacity-60'
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={!newReminderText.trim()}
+                                className="p-1.5 bg-amber-500/80 hover:bg-amber-500 disabled:opacity-25 text-white rounded-lg transition-colors"
+                            >
+                                <Plus size={12} />
+                            </button>
+                        </form>
+
+                        {/* Divider line */}
+                        <div className="mx-4 border-t border-dashed border-amber-300/40 dark:border-amber-700/30" />
+
+                        {/* List */}
+                        <div className="max-h-[200px] overflow-y-auto py-1">
+                            {todayReminders.length === 0 ? (
+                                <div className="py-5 text-center">
+                                    <p className="text-[11px] text-amber-500/60 dark:text-amber-500/40 italic">Nenhum aviso por aqui...</p>
+                                </div>
+                            ) : (
+                                <AnimatePresence>
+                                    {todayReminders.map((reminder) => {
+                                        const dotColor = {
+                                            blue: 'bg-blue-400', amber: 'bg-amber-500', red: 'bg-rose-400',
+                                            green: 'bg-emerald-400', purple: 'bg-violet-400',
+                                        };
+                                        const isEditing = editingId === reminder.id;
+
+                                        return (
+                                            <motion.div
+                                                key={reminder.id}
+                                                initial={{ opacity: 0, y: -6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                                className={cn(
+                                                    "px-4 py-1.5 flex items-center gap-2 group hover:bg-amber-100/30 dark:hover:bg-amber-900/10 transition-colors",
+                                                    reminder.is_done && 'opacity-40'
+                                                )}
+                                            >
+                                                <button
+                                                    onClick={() => toggleDone(reminder.id)}
+                                                    className={cn(
+                                                        "w-3.5 h-3.5 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all",
+                                                        reminder.is_done
+                                                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                            : 'border-amber-400/60 dark:border-amber-600/50 hover:border-emerald-400'
+                                                    )}
+                                                >
+                                                    {reminder.is_done ? (
+                                                        <Check size={8} strokeWidth={3} />
+                                                    ) : (
+                                                        <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[reminder.color] || dotColor.amber)} />
+                                                    )}
+                                                </button>
+
+                                                {isEditing ? (
+                                                    <form
+                                                        className="flex-1 flex items-center gap-1"
+                                                        onSubmit={(e) => {
+                                                            e.preventDefault();
+                                                            if (editingText.trim()) updateReminder(reminder.id, { content: editingText.trim() });
+                                                            setEditingId(null);
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
+                                                            autoFocus
+                                                            className="flex-1 px-2 py-0.5 text-[11px] bg-white/80 dark:bg-slate-800/50 border border-amber-300 dark:border-amber-700 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 text-amber-900 dark:text-amber-100"
+                                                            onKeyDown={(e) => { if (e.key === 'Escape') setEditingId(null); }}
+                                                        />
+                                                        <button type="submit" className="p-0.5 text-emerald-500"><Check size={12} /></button>
+                                                        <button type="button" onClick={() => setEditingId(null)} className="p-0.5 text-amber-400"><X size={12} /></button>
+                                                    </form>
+                                                ) : (
+                                                    <p className={cn(
+                                                        "flex-1 text-[11px] text-amber-900/80 dark:text-amber-200/80 leading-relaxed",
+                                                        reminder.is_done && 'line-through'
+                                                    )}>
+                                                        {reminder.content}
+                                                    </p>
+                                                )}
+
+                                                {reminder.is_pinned && !isEditing && <Pin size={9} className="text-amber-500/60 flex-shrink-0" />}
+
+                                                {!isEditing && (
+                                                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => { setEditingId(reminder.id); setEditingText(reminder.content); }} className="p-0.5 text-amber-400/50 hover:text-blue-500 transition-colors" title="Editar"><Pencil size={11} /></button>
+                                                        <button onClick={() => togglePin(reminder.id)} className="p-0.5 text-amber-400/50 hover:text-amber-600 transition-colors" title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}>{reminder.is_pinned ? <PinOff size={11} /> : <Pin size={11} />}</button>
+                                                        <button onClick={() => deleteReminder(reminder.id)} className="p-0.5 text-amber-400/50 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={11} /></button>
+                                                    </div>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            )}
+                        </div>
                     </div>
                 </motion.div>
             </motion.div>
