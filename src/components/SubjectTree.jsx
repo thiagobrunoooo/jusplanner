@@ -7,15 +7,12 @@ import {
     ChevronDown,
     ChevronRight
 } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { useProgressData } from '../hooks/useStudyData';
 import { ICON_MAP } from '../lib/icons';
 
-function cn(...inputs) {
-    return twMerge(clsx(inputs));
-}
+
 
 const SubjectTree = () => {
     const [expandedSubject, setExpandedSubject] = useState(null);

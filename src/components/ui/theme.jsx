@@ -93,11 +93,6 @@ export function Theme({
         setIsMounted(true)
     }, [])
 
-    useEffect(() => {
-        console.log("Current theme state:", theme);
-        console.log("HTML classes:", document.documentElement.className);
-    }, [theme]);
-
     const sizeClasses = {
         sm: "h-8 px-2 text-xs",
         md: "h-10 px-3 text-sm",

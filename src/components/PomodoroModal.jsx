@@ -7,14 +7,11 @@ import {
     RotateCcw,
     ChevronDown
 } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { SUBJECTS } from '../data/subjects';
 
-function cn(...inputs) {
-    return twMerge(clsx(inputs));
-}
+
 
 const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const { filteredSubjects, activeSchedule } = useSchedules();

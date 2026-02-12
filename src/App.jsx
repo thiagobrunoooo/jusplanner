@@ -13,8 +13,7 @@ import {
   Sparkles,
   Settings as SettingsIcon
 } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from './lib/utils';
 import LoginScreen from './components/LoginScreen';
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -28,68 +27,25 @@ import SubjectTree from './components/SubjectTree';
 import PomodoroModal from './components/PomodoroModal';
 import PerformanceAnalytics from './components/PerformanceAnalytics';
 import { DashboardSkeleton, ScheduleSkeleton, PerformanceSkeleton, SubjectTreeSkeleton } from './components/ui/skeleton';
+import ErrorBoundary from './components/ErrorBoundary';
 
-// Other Components
-import Notebook from './components/Notebook';
-import SubjectResources from './components/SubjectResources';
-import MaterialsView from './components/MaterialsView';
-import Assistant from './components/Assistant';
-import VadeMecum from './components/VadeMecum';
-import TimeMachine from './components/TimeMachine';
-import Settings from './components/Settings';
+// Lazy-loaded Components (loaded on demand)
+const Notebook = React.lazy(() => import('./components/Notebook'));
+const SubjectResources = React.lazy(() => import('./components/SubjectResources'));
+const MaterialsView = React.lazy(() => import('./components/MaterialsView'));
+const Assistant = React.lazy(() => import('./components/Assistant'));
+const VadeMecum = React.lazy(() => import('./components/VadeMecum'));
+const TimeMachine = React.lazy(() => import('./components/TimeMachine'));
+const Settings = React.lazy(() => import('./components/Settings'));
 import { InitialScheduleSelector } from './components/InitialScheduleSelector';
 
 import { useProfileData, useDailyHistory, useProgressData, useStudyTime, useNotes, useMaterials } from './hooks/useStudyData';
 import { ScheduleProvider } from './hooks/useSchedules';
 import { SubjectsProvider } from './hooks/useSubjects.jsx';
 
-// Utility for Tailwind classes
-function cn(...inputs) {
-  return twMerge(clsx(inputs));
-}
 
-// Error Boundary
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
-  }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
 
-  componentDidCatch(error, errorInfo) {
-    this.setState({ error, errorInfo });
-    console.error("Uncaught error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 bg-red-50 text-red-900 h-screen overflow-auto">
-          <h1 className="text-2xl font-bold mb-4">Something went wrong.</h1>
-          <pre className="whitespace-pre-wrap bg-white p-4 rounded border border-red-200 text-sm font-mono">
-            {this.state.error && this.state.error.toString()}
-            <br />
-            {this.state.errorInfo && this.state.errorInfo.componentStack}
-          </pre>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-// Suppress Recharts warnings
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  if (/defaultProps/.test(args[0]) || /width\(.*\) and height\(.*\) of chart/.test(args[0])) {
-    return;
-  }
-  originalConsoleError(...args);
-};
 
 // --- CONSTANTS ---
 const DEFAULT_STATS = {
@@ -119,7 +75,7 @@ function App() {
   // --- TEMPORARY RESET FUNCTION ---
   useEffect(() => {
     window.resetAppData = async () => {
-      console.log("Resetting data (UPDATE strategy)...");
+
       window.isResetting = true;
       const results = [];
 
@@ -165,7 +121,7 @@ function App() {
         } catch (e) { console.error("Profile update failed:", e); results.push("Profile: Failed"); }
 
         localStorage.clear();
-        console.log("Reset Results:", results);
+
 
         setTimeout(() => window.location.reload(), 1000);
         return results.join(", ");
@@ -316,7 +272,7 @@ function App() {
     });
   }, [progress, setProgress, setDailyHistory, logQuestionSession]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { id: 'schedule', icon: <Calendar size={20} />, label: 'Cronograma' },
     { id: 'notebook', icon: <NotebookPen size={20} />, label: 'Caderno' },
@@ -327,7 +283,7 @@ function App() {
     { id: 'subjects', icon: <BookOpen size={20} />, label: 'Edital & Matérias' },
     { id: 'questions', icon: <Brain size={20} />, label: 'Questões' },
     { id: 'settings', icon: <SettingsIcon size={20} />, label: 'Configurações' },
-  ];
+  ], []);
 
   // Show login screen if not authenticated
   if (!user) {
@@ -407,8 +363,16 @@ function App() {
                 />
               )
             )}
-            {activeTab === 'notebook' && <Notebook notes={notes} setNotes={setNotes} isSaving={isSaving} forceSave={forceSave} />}
-            {activeTab === 'assistant' && <Assistant />}
+            {activeTab === 'notebook' && (
+              <React.Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+                <Notebook notes={notes} setNotes={setNotes} isSaving={isSaving} forceSave={forceSave} />
+              </React.Suspense>
+            )}
+            {activeTab === 'assistant' && (
+              <React.Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+                <Assistant />
+              </React.Suspense>
+            )}
             {activeTab === 'performance' && (
               isInitialLoading ? <PerformanceSkeleton /> : <PerformanceAnalytics studyTime={studyTime} />
             )}
@@ -416,13 +380,19 @@ function App() {
               isInitialLoading ? <SubjectTreeSkeleton /> : <SubjectTree />
             )}
             {activeTab === 'materials' && (
-              <MaterialsView
-                materials={materials}
-                addMaterial={addMaterial}
-                deleteMaterial={deleteMaterial}
-              />
+              <React.Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+                <MaterialsView
+                  materials={materials}
+                  addMaterial={addMaterial}
+                  deleteMaterial={deleteMaterial}
+                />
+              </React.Suspense>
             )}
-            {activeTab === 'vademecum' && <VadeMecum />}
+            {activeTab === 'vademecum' && (
+              <React.Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+                <VadeMecum />
+              </React.Suspense>
+            )}
             {
               activeTab === 'questions' && (
                 <div className="max-w-5xl mx-auto flex flex-col items-center justify-center h-96 text-slate-400">
@@ -432,39 +402,41 @@ function App() {
               )
             }
             {activeTab === 'settings' && (
-              <Settings
-                userName={userStats.name || 'Thiago'}
-                setUserName={(name) => setUserStats(prev => ({ ...prev, name, updated_at: new Date().toISOString() }))}
-                userAvatar={userStats.avatar}
-                setUserAvatar={(avatar) => setUserStats(prev => ({ ...prev, avatar, updated_at: new Date().toISOString() }))}
-                onManualSave={async () => {
-                  try {
-                    const { data: { user: currentUser } } = await supabase.auth.getUser();
-                    if (!currentUser) throw new Error('Usuário não autenticado');
+              <React.Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+                <Settings
+                  userName={userStats.name || 'Thiago'}
+                  setUserName={(name) => setUserStats(prev => ({ ...prev, name, updated_at: new Date().toISOString() }))}
+                  userAvatar={userStats.avatar}
+                  setUserAvatar={(avatar) => setUserStats(prev => ({ ...prev, avatar, updated_at: new Date().toISOString() }))}
+                  onManualSave={async () => {
+                    try {
+                      const { data: { user: currentUser } } = await supabase.auth.getUser();
+                      if (!currentUser) throw new Error('Usuário não autenticado');
 
-                    const { error: updateError } = await supabase
-                      .from('profiles')
-                      .update({
-                        avatar: userStats.avatar,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', currentUser.id);
+                      const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({
+                          avatar: userStats.avatar,
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('id', currentUser.id);
 
-                    if (updateError) throw updateError;
+                      if (updateError) throw updateError;
 
-                    alert('Foto de perfil salva com sucesso!');
-                  } catch (e) {
-                    console.error('Erro ao salvar:', e);
-                    alert('Erro ao salvar: ' + e.message);
-                  }
-                }}
-                setShowBackup={() => { }}
-                onReset={() => {
-                  if (window.confirm('TEM CERTEZA? Isso apagará TODO o seu progresso, notas e histórico para sempre.')) {
-                    if (window.resetAppData) window.resetAppData();
-                  }
-                }}
-              />
+                      alert('Foto de perfil salva com sucesso!');
+                    } catch (e) {
+                      console.error('Erro ao salvar:', e);
+                      alert('Erro ao salvar: ' + e.message);
+                    }
+                  }}
+                  setShowBackup={() => { }}
+                  onReset={() => {
+                    if (window.confirm('TEM CERTEZA? Isso apagará TODO o seu progresso, notas e histórico para sempre.')) {
+                      if (window.resetAppData) window.resetAppData();
+                    }
+                  }}
+                />
+              </React.Suspense>
             )}
           </div>
         </main>
@@ -476,7 +448,11 @@ function App() {
         onUpdateStudyTime={updateStudyTime}
       />
 
-      {showTimeMachine && <TimeMachine onClose={() => setShowTimeMachine(false)} />}
+      {showTimeMachine && (
+        <React.Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" /></div>}>
+          <TimeMachine onClose={() => setShowTimeMachine(false)} />
+        </React.Suspense>
+      )}
 
       <InitialScheduleSelector />
 

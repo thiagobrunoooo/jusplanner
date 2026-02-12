@@ -21,15 +21,12 @@ import {
     Cell,
     Legend
 } from 'recharts';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { SUBJECTS } from '../data/subjects';
 import { generateDynamicSchedule } from '../lib/scheduleGenerator';
 
-function cn(...inputs) {
-    return twMerge(clsx(inputs));
-}
+
 
 const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     const { filteredSubjects, activeSchedule } = useSchedules();

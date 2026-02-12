@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
     Plus,
     Pencil,
@@ -91,8 +91,8 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
                     <button
                         onClick={onConfirm}
                         className={`flex-1 px-4 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 ${danger
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'bg-red-600 text-white hover:bg-red-700'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                     >
                         <Trash2 size={18} />
@@ -240,8 +240,8 @@ const SubjectModal = ({ isOpen, onClose, subject, onSave, existingTitles = [] })
                                     key={color.name}
                                     onClick={() => setSelectedColor(index)}
                                     className={`w-10 h-10 rounded-lg ${color.bgColor} transition-all duration-200 ${selectedColor === index
-                                            ? 'ring-2 ring-offset-2 ring-blue-500 scale-110'
-                                            : 'hover:scale-105'
+                                        ? 'ring-2 ring-offset-2 ring-blue-500 scale-110'
+                                        : 'hover:scale-105'
                                         }`}
                                     title={color.name}
                                 />
@@ -261,8 +261,8 @@ const SubjectModal = ({ isOpen, onClose, subject, onSave, existingTitles = [] })
                                         key={iconName}
                                         onClick={() => setSelectedIcon(iconName)}
                                         className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-all duration-200 ${selectedIcon === iconName
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 scale-110'
-                                                : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-105'
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 scale-110'
+                                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-105'
                                             }`}
                                     >
                                         <IconComponent size={20} />
@@ -529,6 +529,74 @@ const TopicModal = ({ isOpen, onClose, topic, onSave }) => {
     );
 };
 
+// Componente para listar e reordenar tópicos
+const TopicReorderList = ({ subject, onEdit, onDelete, onUpdateTopics }) => {
+    const [topics, setTopics] = useState(subject.topics);
+
+    // Sincroniza estado local quando props mudam (ex: adicionou novo tópico externo)
+    useEffect(() => {
+        setTopics(subject.topics);
+    }, [subject.topics]);
+
+    const handleReorder = (newOrder) => {
+        setTopics(newOrder);
+    };
+
+    // Salva apenas quando soltar o item (drag end)
+    const handleDragEnd = () => {
+        // Verifica se a ordem realmente mudou antes de chamar update
+        const currentOrderIds = topics.map(t => t.id).join(',');
+        const originalOrderIds = subject.topics.map(t => t.id).join(',');
+
+        if (currentOrderIds !== originalOrderIds) {
+            onUpdateTopics(subject.id, topics);
+        }
+    };
+
+    return (
+        <Reorder.Group axis="y" values={topics} onReorder={handleReorder} className="space-y-2">
+            {topics.map((topic) => (
+                <Reorder.Item
+                    key={topic.id}
+                    value={topic}
+                    onDragEnd={handleDragEnd}
+                    className="bg-slate-50 dark:bg-slate-800/50 rounded-xl group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
+                >
+                    <div className="flex items-center gap-3 p-3">
+                        <div className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 p-1">
+                            <GripVertical size={18} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-700 dark:text-slate-200 truncate">
+                                {topic.title}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                                {topic.subtopics?.length || 0} subtópicos
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => onEdit(subject.id, topic)}
+                                className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
+                            >
+                                <Pencil size={16} />
+                            </button>
+                            <button
+                                onClick={() => onDelete(subject.id, topic)}
+                                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-500 transition-colors"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </Reorder.Item>
+            ))}
+        </Reorder.Group>
+    );
+};
+
 // Componente principal do editor
 export default function SubjectsEditor() {
     const {
@@ -628,6 +696,15 @@ export default function SubjectsEditor() {
             type: 'reset',
             data: null
         });
+    };
+
+    const handleUpdateTopicsOrder = async (subjectId, newTopics) => {
+        try {
+            await updateSubject(subjectId, { topics: newTopics });
+            // Não precisa de toast aqui para não floodar
+        } catch (err) {
+            showToast('Erro ao reordenar tópicos', 'error');
+        }
     };
 
     if (loading) {
@@ -754,39 +831,16 @@ export default function SubjectsEditor() {
                                         className="border-t border-slate-100 dark:border-slate-800"
                                     >
                                         <div className="p-4 space-y-2">
-                                            {subject.topics.map((topic) => (
-                                                <div
-                                                    key={topic.id}
-                                                    className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-slate-700 dark:text-slate-200 truncate">
-                                                            {topic.title}
-                                                        </p>
-                                                        <p className="text-xs text-slate-500 truncate">
-                                                            {topic.subtopics?.length || 0} subtópicos
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <button
-                                                            onClick={() => setTopicModal({ open: true, subjectId: subject.id, topic })}
-                                                            className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
-                                                        >
-                                                            <Pencil size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteTopic(subject.id, topic)}
-                                                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            <TopicReorderList
+                                                subject={subject}
+                                                onEdit={(sid, t) => setTopicModal({ open: true, subjectId: sid, topic: t })}
+                                                onDelete={handleDeleteTopic}
+                                                onUpdateTopics={handleUpdateTopicsOrder}
+                                            />
 
                                             <button
                                                 onClick={() => setTopicModal({ open: true, subjectId: subject.id, topic: null })}
-                                                className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all"
+                                                className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all mt-2"
                                             >
                                                 <Plus size={18} />
                                                 Adicionar Tópico

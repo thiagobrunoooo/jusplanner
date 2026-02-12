@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         const checkSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                console.log('[Auth] Session check:', session ? 'Found' : 'None');
+
                 setUser(session?.user ?? null);
             } catch (err) {
                 console.error('[Auth] Session check error:', err);
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            console.log('[Auth] Auth state change:', _event, session ? 'User present' : 'No user');
+
             setUser(session?.user ?? null);
             setLoading(false);
         });

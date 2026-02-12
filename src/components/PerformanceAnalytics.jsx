@@ -20,15 +20,12 @@ import {
     Tooltip,
     Legend
 } from 'recharts';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { useProgressData } from '../hooks/useStudyData';
 import { SUBJECTS } from '../data/subjects';
 
-function cn(...inputs) {
-    return twMerge(clsx(inputs));
-}
+
 
 const SubjectPerformanceCard = ({ subject, progress, subjectsToUse }) => {
     const [isExpanded, setIsExpanded] = useState(false);

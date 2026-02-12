@@ -13,5 +13,18 @@ export default defineConfig({
   server: {
     host: true,
     port: 8080,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-framer': ['framer-motion'],
+          'vendor-charts': ['recharts'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ui': ['clsx', 'tailwind-merge', 'class-variance-authority'],
+        }
+      }
+    }
   }
 })

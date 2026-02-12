@@ -119,11 +119,11 @@ const SubjectResources = ({ subjectId, topicId = null, materials = [], addMateri
 
         try {
             if (item.source === 'local') {
-                console.log("Deleting local file...");
+
                 await deleteFile(item.id);
                 await loadLocalFiles();
             } else {
-                console.log("Deleting cloud material...");
+
                 if (deleteMaterial) {
                     await deleteMaterial(item.id);
                 } else {

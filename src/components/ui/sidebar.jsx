@@ -73,9 +73,12 @@ export const DesktopSidebar = ({
                 width: animate ? (open ? "280px" : "80px") : "280px",
             }}
             transition={{
-                duration: 0.4,
-                ease: [0.25, 0.1, 0.25, 1], // Curva suave tipo ease-out
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                mass: 0.8,
             }}
+            style={{ willChange: "width" }}
             {...props}
         >
             {/* Botão de Toggle - Centralizado verticalmente */}
@@ -83,13 +86,13 @@ export const DesktopSidebar = ({
                 onClick={toggleSidebar}
                 className="absolute -right-3.5 top-1/2 z-50 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-lg transition-all duration-200 group"
                 style={{ transform: "translateY(-50%)" }}
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.92 }}
                 title={open ? "Retrair sidebar" : "Expandir sidebar"}
             >
                 <motion.div
                     animate={{ rotate: open ? 0 : 180 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
                     <ChevronLeft size={16} className="text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors" />
                 </motion.div>
@@ -210,12 +213,28 @@ export const SidebarLink = ({
             <motion.span
                 animate={{
                     opacity: animate ? (open ? 1 : 0) : 1,
-                    x: animate ? (open ? 0 : -10) : 0,
+                    x: animate ? (open ? 0 : -8) : 0,
                     width: animate ? (open ? "auto" : 0) : "auto",
                 }}
                 transition={{
-                    duration: 0.35,
-                    ease: [0.25, 0.1, 0.25, 1]
+                    opacity: {
+                        type: "tween",
+                        duration: open ? 0.25 : 0.15,
+                        delay: open ? 0.08 : 0,
+                        ease: "easeOut",
+                    },
+                    x: {
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                        mass: 0.6,
+                    },
+                    width: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                        mass: 0.8,
+                    },
                 }}
                 className={cn(
                     "text-sm font-medium whitespace-pre overflow-hidden z-20 relative",

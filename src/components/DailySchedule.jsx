@@ -8,16 +8,13 @@ import {
     ChevronDown,
     MoreVertical
 } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { useSubjects } from '../hooks/useSubjects.jsx';
 import { ICON_MAP } from '../lib/icons';
 import { generateDynamicSchedule, getWeekDescription } from '../lib/scheduleGenerator';
 
-function cn(...inputs) {
-    return twMerge(clsx(inputs));
-}
+
 
 // DebouncedInput component
 const DebouncedInput = ({ value, onCommit, ...props }) => {

@@ -47,7 +47,7 @@ const TimeMachine = ({ onClose }) => {
                 setSessions(studyData || []);
 
                 // 2. Question Sessions
-                console.log(`[TimeMachine] Fetching question sessions for ${start.toISOString()} to ${end.toISOString()}`);
+
                 const { data: qData, error: qError } = await supabase
                     .from('question_sessions')
                     .select('*')
@@ -57,7 +57,7 @@ const TimeMachine = ({ onClose }) => {
                     .order('created_at', { ascending: false });
 
                 if (qError) throw qError;
-                console.log(`[TimeMachine] Fetched ${qData?.length} question sessions.`);
+
                 setQuestionSessions(qData || []);
 
             } catch (err) {
