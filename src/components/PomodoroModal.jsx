@@ -34,6 +34,52 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
 
     const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
 
+    // Play a pleasant chime sound when the timer finishes
+    const playAlarmSound = useCallback(() => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 — major chord ascending
+
+            notes.forEach((freq, i) => {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.25);
+
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.25);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + i * 0.25 + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.25 + 0.6);
+
+                oscillator.start(audioCtx.currentTime + i * 0.25);
+                oscillator.stop(audioCtx.currentTime + i * 0.25 + 0.6);
+            });
+
+            // Play the sequence twice for emphasis
+            setTimeout(() => {
+                const audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+                notes.forEach((freq, i) => {
+                    const oscillator = audioCtx2.createOscillator();
+                    const gainNode = audioCtx2.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx2.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(freq, audioCtx2.currentTime + i * 0.25);
+                    gainNode.gain.setValueAtTime(0, audioCtx2.currentTime + i * 0.25);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioCtx2.currentTime + i * 0.25 + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx2.currentTime + i * 0.25 + 0.6);
+                    oscillator.start(audioCtx2.currentTime + i * 0.25);
+                    oscillator.stop(audioCtx2.currentTime + i * 0.25 + 0.6);
+                });
+            }, 1200);
+        } catch (e) {
+            console.warn('Audio playback failed:', e);
+        }
+    }, []);
+
     // Quick presets
     const presets = [
         { label: '15m', minutes: 15 },
@@ -61,6 +107,7 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
                         clearInterval(interval);
                         setTimeout(() => {
                             setIsActive(false);
+                            playAlarmSound();
                             if (selectedSubjectRef.current && startTimeRef.current) {
                                 const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
                                 onUpdateStudyTimeRef.current(selectedSubjectRef.current, elapsedSeconds);
