@@ -683,25 +683,25 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                     variants={cardVariants}
                     className="relative lg:col-span-2 xl:col-span-1"
                 >
-                    <div className="relative bg-gradient-to-b from-amber-50 to-yellow-50/80 dark:from-amber-950/30 dark:to-yellow-950/20 rounded-2xl shadow-md dark:shadow-amber-950/20 overflow-hidden transition-colors"
+                    <div className="relative h-full bg-gradient-to-b from-amber-50 to-yellow-50/80 dark:from-amber-950/30 dark:to-yellow-950/20 rounded-2xl shadow-md dark:shadow-amber-950/20 overflow-hidden transition-colors flex flex-col"
                         style={{ boxShadow: '2px 4px 16px rgba(217, 168, 50, 0.10), 0 1px 3px rgba(0,0,0,0.04)' }}>
 
                         {/* Tape decoration */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] w-16 h-5 bg-amber-200/60 dark:bg-amber-700/30 rounded-b-lg z-10" />
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[1px] w-20 h-6 bg-amber-200/60 dark:bg-amber-700/30 rounded-b-lg z-10" />
 
                         {/* Folded corner */}
-                        <div className="absolute top-0 right-0 w-6 h-6 overflow-hidden">
-                            <div className="absolute -top-3 -right-3 w-6 h-6 bg-amber-200/80 dark:bg-amber-800/40 rotate-45 shadow-inner" />
+                        <div className="absolute top-0 right-0 w-8 h-8 overflow-hidden">
+                            <div className="absolute -top-4 -right-4 w-8 h-8 bg-amber-200/80 dark:bg-amber-800/40 rotate-45 shadow-inner" />
                         </div>
 
                         {/* Header */}
-                        <div className="px-4 pt-6 pb-2 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <StickyNote size={14} className="text-amber-600/70 dark:text-amber-400/70" />
-                                <h3 className="font-semibold text-amber-800 dark:text-amber-300 text-[13px]">Avisos</h3>
+                        <div className="px-5 pt-7 pb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <StickyNote size={18} className="text-amber-600/70 dark:text-amber-400/70" />
+                                <h3 className="font-semibold text-amber-800 dark:text-amber-300 text-sm">Avisos</h3>
                             </div>
                             {pendingCount > 0 && (
-                                <span className="min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-amber-300/50 dark:bg-amber-700/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full">
+                                <span className="min-w-[20px] h-[20px] flex items-center justify-center px-1.5 bg-amber-300/50 dark:bg-amber-700/40 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-full">
                                     {pendingCount}
                                 </span>
                             )}
@@ -716,29 +716,29 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                                     setNewReminderText('');
                                 }
                             }}
-                            className="px-4 pb-2.5 flex items-center gap-1.5"
+                            className="px-5 pb-3 flex items-center gap-2"
                         >
                             <input
                                 type="text"
                                 value={newReminderText}
                                 onChange={(e) => setNewReminderText(e.target.value)}
                                 placeholder="Novo aviso..."
-                                className="flex-1 px-2.5 py-1.5 text-xs bg-white/70 dark:bg-slate-900/40 border border-amber-200/60 dark:border-amber-800/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400/50 text-amber-900 dark:text-amber-100 placeholder:text-amber-400/60"
+                                className="flex-1 px-3 py-2 text-sm bg-white/70 dark:bg-slate-900/40 border border-amber-200/60 dark:border-amber-800/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-400/50 text-amber-900 dark:text-amber-100 placeholder:text-amber-400/60"
                             />
-                            <div className="flex items-center gap-0.5">
+                            <div className="flex items-center gap-1">
                                 {['blue', 'amber', 'red', 'green', 'purple'].map(c => (
                                     <button
                                         key={c}
                                         type="button"
                                         onClick={() => setReminderColor(c)}
                                         className={cn(
-                                            "w-3 h-3 rounded-full transition-all",
+                                            "w-4 h-4 rounded-full transition-all",
                                             c === 'blue' && 'bg-blue-400',
                                             c === 'amber' && 'bg-amber-400',
                                             c === 'red' && 'bg-rose-400',
                                             c === 'green' && 'bg-emerald-400',
                                             c === 'purple' && 'bg-violet-400',
-                                            reminderColor === c ? 'ring-[1.5px] ring-offset-1 ring-amber-600/60 dark:ring-offset-amber-950 scale-125' : 'opacity-35 hover:opacity-60'
+                                            reminderColor === c ? 'ring-2 ring-offset-1 ring-amber-600/60 dark:ring-offset-amber-950 scale-110' : 'opacity-40 hover:opacity-70'
                                         )}
                                     />
                                 ))}
@@ -746,20 +746,20 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                             <button
                                 type="submit"
                                 disabled={!newReminderText.trim()}
-                                className="p-1.5 bg-amber-500/80 hover:bg-amber-500 disabled:opacity-25 text-white rounded-lg transition-colors"
+                                className="p-2 bg-amber-500/80 hover:bg-amber-500 disabled:opacity-25 text-white rounded-lg transition-colors"
                             >
-                                <Plus size={12} />
+                                <Plus size={16} />
                             </button>
                         </form>
 
                         {/* Divider line */}
-                        <div className="mx-4 border-t border-dashed border-amber-300/40 dark:border-amber-700/30" />
+                        <div className="mx-5 border-t border-dashed border-amber-300/40 dark:border-amber-700/30" />
 
                         {/* List */}
-                        <div className="max-h-[200px] overflow-y-auto py-1">
+                        <div className="flex-1 max-h-[300px] overflow-y-auto py-2">
                             {todayReminders.length === 0 ? (
-                                <div className="py-5 text-center">
-                                    <p className="text-[11px] text-amber-500/60 dark:text-amber-500/40 italic">Nenhum aviso por aqui...</p>
+                                <div className="py-8 text-center">
+                                    <p className="text-xs text-amber-500/60 dark:text-amber-500/40 italic">Nenhum aviso por aqui...</p>
                                 </div>
                             ) : (
                                 <AnimatePresence>
@@ -778,21 +778,21 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                                                 exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
                                                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                                                 className={cn(
-                                                    "px-4 py-1.5 flex items-center gap-2 group hover:bg-amber-100/30 dark:hover:bg-amber-900/10 transition-colors",
-                                                    reminder.is_done && 'opacity-40'
+                                                    "px-5 py-2.5 flex items-start gap-3 group hover:bg-amber-100/30 dark:hover:bg-amber-900/10 transition-colors",
+                                                    reminder.is_done && 'opacity-50'
                                                 )}
                                             >
                                                 <button
                                                     onClick={() => toggleDone(reminder.id)}
                                                     className={cn(
-                                                        "w-3.5 h-3.5 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all",
+                                                        "mt-0.5 w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all",
                                                         reminder.is_done
                                                             ? 'bg-emerald-500 border-emerald-500 text-white'
                                                             : 'border-amber-400/60 dark:border-amber-600/50 hover:border-emerald-400'
                                                     )}
                                                 >
                                                     {reminder.is_done ? (
-                                                        <Check size={8} strokeWidth={3} />
+                                                        <Check size={10} strokeWidth={3} />
                                                     ) : (
                                                         <span className={cn('w-1.5 h-1.5 rounded-full', dotColor[reminder.color] || dotColor.amber)} />
                                                     )}
@@ -810,28 +810,28 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                                                         <input
                                                             type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
                                                             autoFocus
-                                                            className="flex-1 px-2 py-0.5 text-[11px] bg-white/80 dark:bg-slate-800/50 border border-amber-300 dark:border-amber-700 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 text-amber-900 dark:text-amber-100"
+                                                            className="flex-1 px-2 py-1 text-xs bg-white/80 dark:bg-slate-800/50 border border-amber-300 dark:border-amber-700 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 text-amber-900 dark:text-amber-100"
                                                             onKeyDown={(e) => { if (e.key === 'Escape') setEditingId(null); }}
                                                         />
-                                                        <button type="submit" className="p-0.5 text-emerald-500"><Check size={12} /></button>
-                                                        <button type="button" onClick={() => setEditingId(null)} className="p-0.5 text-amber-400"><X size={12} /></button>
+                                                        <button type="submit" className="p-1 text-emerald-500 hover:text-emerald-600"><Check size={14} /></button>
+                                                        <button type="button" onClick={() => setEditingId(null)} className="p-1 text-amber-400 hover:text-amber-600"><X size={14} /></button>
                                                     </form>
                                                 ) : (
                                                     <p className={cn(
-                                                        "flex-1 text-[11px] text-amber-900/80 dark:text-amber-200/80 leading-relaxed",
+                                                        "flex-1 text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed break-words",
                                                         reminder.is_done && 'line-through'
                                                     )}>
                                                         {reminder.content}
                                                     </p>
                                                 )}
 
-                                                {reminder.is_pinned && !isEditing && <Pin size={9} className="text-amber-500/60 flex-shrink-0" />}
+                                                {reminder.is_pinned && !isEditing && <Pin size={12} className="text-amber-500/60 flex-shrink-0 mt-0.5" />}
 
                                                 {!isEditing && (
-                                                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => { setEditingId(reminder.id); setEditingText(reminder.content); }} className="p-0.5 text-amber-400/50 hover:text-blue-500 transition-colors" title="Editar"><Pencil size={11} /></button>
-                                                        <button onClick={() => togglePin(reminder.id)} className="p-0.5 text-amber-400/50 hover:text-amber-600 transition-colors" title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}>{reminder.is_pinned ? <PinOff size={11} /> : <Pin size={11} />}</button>
-                                                        <button onClick={() => deleteReminder(reminder.id)} className="p-0.5 text-amber-400/50 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={11} /></button>
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-start mt-[-2px]">
+                                                        <button onClick={() => { setEditingId(reminder.id); setEditingText(reminder.content); }} className="p-1 text-amber-400/50 hover:text-blue-500 transition-colors" title="Editar"><Pencil size={13} /></button>
+                                                        <button onClick={() => togglePin(reminder.id)} className="p-1 text-amber-400/50 hover:text-amber-600 transition-colors" title={reminder.is_pinned ? 'Desafixar' : 'Fixar'}>{reminder.is_pinned ? <PinOff size={13} /> : <Pin size={13} />}</button>
+                                                        <button onClick={() => deleteReminder(reminder.id)} className="p-1 text-amber-400/50 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={13} /></button>
                                                     </div>
                                                 )}
                                             </motion.div>
