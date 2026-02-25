@@ -23,6 +23,9 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const [selectedSubject, setSelectedSubject] = useState('');
     const [startTime, setStartTime] = useState(null);
 
+    // endTime stores the absolute timestamp when the timer should reach 0
+    const endTimeRef = useRef(null);
+
     // Refs to access current values inside the interval callback without re-creating it
     const selectedSubjectRef = useRef(selectedSubject);
     const startTimeRef = useRef(startTime);
@@ -93,34 +96,56 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
     const circumference = 2 * Math.PI * 120;
     const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
 
-    // Timer tick effect — interval is created once when isActive becomes true
-    // and destroyed when isActive becomes false. No dependency on timeLeft.
+    // Timer tick effect using absolute timestamps.
+    // Instead of decrementing by 1 each second (which drifts when the browser
+    // throttles setInterval in background tabs), we store the absolute end time
+    // and always compute timeLeft = endTime - now.
     useEffect(() => {
         let interval = null;
-        if (isActive) {
-            if (!startTime) setStartTime(Date.now());
+        let rafId = null;
 
-            interval = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev <= 1) {
-                        // Timer finished — schedule state updates for next tick
-                        clearInterval(interval);
-                        setTimeout(() => {
-                            setIsActive(false);
-                            playAlarmSound();
-                            if (selectedSubjectRef.current && startTimeRef.current) {
-                                const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
-                                onUpdateStudyTimeRef.current(selectedSubjectRef.current, elapsedSeconds);
-                                setStartTime(null);
-                            }
-                        }, 0);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
+        if (isActive) {
+            const now = Date.now();
+            if (!startTime) setStartTime(now);
+
+            // Set the absolute end time based on current timeLeft
+            if (!endTimeRef.current) {
+                endTimeRef.current = now + timeLeft * 1000;
+            }
+
+            const tick = () => {
+                const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
+
+                if (remaining <= 0) {
+                    // Timer finished
+                    setTimeLeft(0);
+                    endTimeRef.current = null;
+                    clearInterval(interval);
+
+                    setTimeout(() => {
+                        setIsActive(false);
+                        playAlarmSound();
+                        if (selectedSubjectRef.current && startTimeRef.current) {
+                            const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+                            onUpdateStudyTimeRef.current(selectedSubjectRef.current, elapsedSeconds);
+                            setStartTime(null);
+                        }
+                    }, 0);
+                } else {
+                    setTimeLeft(remaining);
+                }
+            };
+
+            // Use setInterval as the primary driver — it works even in background tabs
+            // (though throttled, it will still compute the correct remaining time)
+            interval = setInterval(tick, 1000);
+
+            // Also tick immediately so the display is correct from the start
+            tick();
         } else {
             // Timer paused or stopped
+            endTimeRef.current = null;
+
             if (startTime && selectedSubject) {
                 const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
                 if (elapsedSeconds > 0) {
@@ -129,7 +154,11 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
             }
             setStartTime(null);
         }
-        return () => clearInterval(interval);
+
+        return () => {
+            clearInterval(interval);
+            if (rafId) cancelAnimationFrame(rafId);
+        };
     }, [isActive]); // Only re-run when isActive changes
 
     const formatTime = (seconds) => {
@@ -172,6 +201,7 @@ const PomodoroModal = ({ isOpen, onClose, onUpdateStudyTime }) => {
 
     const handleReset = () => {
         setIsActive(false);
+        endTimeRef.current = null;
         const currentMins = parseInt(editMinutes) || 25;
         setTimeLeft(currentMins * 60);
         setTotalTime(currentMins * 60);
