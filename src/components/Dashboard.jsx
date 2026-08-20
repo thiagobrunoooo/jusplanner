@@ -592,7 +592,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                                         whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
                                         transition={{ duration: 0.5 }}
                                     >
-                                        <Sparkles size={20} />
+                                        <Target size={20} />
                                     </motion.div>
                                     <h3 className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider">Estudar Hoje</h3>
                                 </div>
@@ -672,7 +672,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         </div>
 
                         <div className="absolute -right-6 -bottom-6 opacity-[0.06] dark:opacity-[0.12] pointer-events-none">
-                            <Sparkles size={120} strokeWidth={1} />
+                            <Target size={120} strokeWidth={1} />
                         </div>
 
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-orange-500/20 dark:bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
