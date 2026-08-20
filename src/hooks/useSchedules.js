@@ -210,6 +210,71 @@ export function ScheduleProvider(props) {
         }
     };
 
+    // Salvar grade customizada completa para um cronograma
+    const saveCustomSchedule = async (scheduleId, customSchedule, optionalTopicIds = null) => {
+        if (!user || !scheduleId) return;
+
+        try {
+            const targetSchedule = schedules.find(s => s.id === scheduleId) || activeSchedule;
+            const existingSettings = targetSchedule?.settings || {};
+            const newSettings = {
+                ...existingSettings,
+                customSchedule,
+                isCustomized: true
+            };
+
+            // Extrai tópicos se não fornecido explicitamente
+            let finalTopicIds = optionalTopicIds;
+            if (!finalTopicIds) {
+                const topicSet = new Set();
+                Object.values(customSchedule || {}).forEach(week => {
+                    Object.values(week || {}).forEach(dayTopics => {
+                        if (Array.isArray(dayTopics)) {
+                            dayTopics.forEach(id => {
+                                if (id && id !== 'rest' && id !== 'review') topicSet.add(id);
+                            });
+                        }
+                    });
+                });
+                finalTopicIds = Array.from(topicSet);
+            }
+
+            await updateSchedule(scheduleId, {
+                settings: newSettings,
+                topicIds: finalTopicIds
+            });
+
+            return true;
+        } catch (err) {
+            console.error('Failed to save custom schedule:', err);
+            return false;
+        }
+    };
+
+    // Atualizar tópicos de um dia específico na grade do cronograma
+    const updateDayTopics = async (scheduleId, weekKey, dayKey, newTopicIds) => {
+        if (!user || !scheduleId) return;
+
+        try {
+            const targetSchedule = schedules.find(s => s.id === scheduleId) || activeSchedule;
+            if (!targetSchedule) return;
+
+            const existingCustom = targetSchedule.settings?.customSchedule || {};
+            const updatedSchedule = {
+                ...existingCustom,
+                [weekKey]: {
+                    ...(existingCustom[weekKey] || {}),
+                    [dayKey]: newTopicIds
+                }
+            };
+
+            return await saveCustomSchedule(scheduleId, updatedSchedule);
+        } catch (err) {
+            console.error('Failed to update day topics:', err);
+            return false;
+        }
+    };
+
     // Filtra subjects baseado nos tópicos do cronograma ativo (usando subjects dinâmicos)
     const filteredSubjects = useMemo(() => {
         if (!activeSchedule || !activeSchedule.topicIds || activeSchedule.topicIds.length === 0) {
@@ -237,7 +302,9 @@ export function ScheduleProvider(props) {
         setActiveSchedule,
         deleteSchedule,
         updateScheduleTopics,
-        updateSchedule, // New function
+        updateSchedule,
+        saveCustomSchedule,
+        updateDayTopics,
         reload: loadSchedules
     };
 
@@ -251,3 +318,4 @@ export function useSchedules() {
     }
     return context;
 }
+

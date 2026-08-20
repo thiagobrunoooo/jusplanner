@@ -38,7 +38,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSchedules } from '../hooks/useSchedules';
 import { SUBJECTS } from '../data/subjects';
-import { generateDynamicSchedule } from '../lib/scheduleGenerator';
+import { generateDynamicSchedule, resolveScheduleStructure } from '../lib/scheduleGenerator';
 import { useReminders } from '../hooks/useReminders';
 
 
@@ -77,11 +77,11 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
 
     const doneCount = useMemo(() => todayReminders.filter(r => r.is_done).length, [todayReminders]);
     const { dynamicSchedule } = useMemo(() => {
-        const topics = activeSchedule ? activeSchedule.topicIds : [];
-        if (!filteredSubjects || filteredSubjects.length === 0) return { dynamicSchedule: {} };
-        const settings = activeSchedule?.settings || {};
-        return { dynamicSchedule: generateDynamicSchedule(topics, filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS, settings) };
+        if (!activeSchedule) return { dynamicSchedule: {} };
+        const subjectsToUse = filteredSubjects && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
+        return { dynamicSchedule: resolveScheduleStructure(activeSchedule, subjectsToUse) };
     }, [activeSchedule, filteredSubjects]);
+
 
     const stats = useMemo(() => {
         let totalQuestions = 0;

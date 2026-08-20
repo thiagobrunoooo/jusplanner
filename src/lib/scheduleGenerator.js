@@ -197,15 +197,56 @@ export function generateDynamicSchedule(topicIds, subjects, options = {}) {
     return schedule;
 }
 
+// Resolve a estrutura completa de um cronograma (seja customizado/importado ou gerado dinamicamente)
+export function resolveScheduleStructure(schedule, subjects = []) {
+    if (!schedule) return {};
+
+    // Se o cronograma tiver uma grade manual/importada customizada salva
+    if (schedule.settings?.customSchedule && Object.keys(schedule.settings.customSchedule).length > 0) {
+        return schedule.settings.customSchedule;
+    }
+
+    // Caso contrário, gera dinamicamente a partir dos topicIds e opções
+    const topicIds = schedule.topicIds || [];
+    if (topicIds.length === 0) return {};
+
+    return generateDynamicSchedule(topicIds, subjects, schedule.settings || {});
+}
+
+// Extrai todos os topicIds únicos de uma estrutura de cronograma (excluindo rest/review)
+export function extractTopicIdsFromSchedule(scheduleStructure) {
+    if (!scheduleStructure || typeof scheduleStructure !== 'object') return [];
+
+    const topicIdSet = new Set();
+    Object.values(scheduleStructure).forEach(weekDays => {
+        if (weekDays && typeof weekDays === 'object') {
+            Object.values(weekDays).forEach(dayTopics => {
+                if (Array.isArray(dayTopics)) {
+                    dayTopics.forEach(id => {
+                        if (id && id !== 'rest' && id !== 'review') {
+                            topicIdSet.add(id);
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    return Array.from(topicIdSet);
+}
+
 // Gera descrição da semana baseado nos tópicos
-export function getWeekDescription(schedule, weekKey, subjects) {
-    const weekData = schedule[weekKey];
+export function getWeekDescription(schedule, weekKey, subjects = []) {
+    const weekData = schedule?.[weekKey];
+
     if (!weekData) return '';
 
     // Pega todos os tópicos IDs da semana
     const topicIds = Object.values(weekData)
         .flat()
         .filter(id => id !== 'rest' && id !== 'review');
+
+    if (topicIds.length === 0) return 'Descanso ou Revisão';
 
     // Pega os subjects únicos
     const subjectNames = new Set();
@@ -217,9 +258,10 @@ export function getWeekDescription(schedule, weekKey, subjects) {
     });
 
     const names = Array.from(subjectNames).slice(0, 3);
-    if (names.length === 0) return 'Revisão';
+    if (names.length === 0) return 'Estudos';
     if (names.length < subjectNames.size) {
         return `${names.join(', ')} e mais`;
     }
     return names.join(', ');
 }
+

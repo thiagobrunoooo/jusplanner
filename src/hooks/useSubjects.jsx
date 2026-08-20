@@ -250,6 +250,52 @@ export function SubjectsProvider({ children }) {
         }
     };
 
+    // Adiciona e atualiza múltiplas matérias e tópicos em lote (usado pelo importador)
+    const addMultipleSubjectsAndTopics = async (newSubjectsList = [], updatedSubjectsList = []) => {
+        if (!user) {
+            setSubjects(prev => {
+                const updated = [...prev];
+                updatedSubjectsList.forEach(up => {
+                    const idx = updated.findIndex(s => s.id === up.id);
+                    if (idx !== -1) updated[idx] = { ...updated[idx], topics: up.topics };
+                });
+                newSubjectsList.forEach(ns => {
+                    if (!updated.some(s => s.id === ns.id)) {
+                        updated.push(ns);
+                    }
+                });
+                return updated;
+            });
+            return true;
+        }
+
+        try {
+            if (!isCustomized) {
+                await initializeFromDefaults();
+            }
+
+            if (newSubjectsList.length > 0) {
+                const toInsert = newSubjectsList.map((s, idx) =>
+                    transformToDB({ ...s, position: subjects.length + idx }, user.id)
+                );
+                await supabase.from('user_subjects').upsert(toInsert, { onConflict: 'user_id, subject_id' });
+            }
+
+            for (const up of updatedSubjectsList) {
+                await supabase.from('user_subjects').update({
+                    topics: up.topics,
+                    updated_at: new Date().toISOString()
+                }).eq('user_id', user.id).eq('subject_id', up.id);
+            }
+
+            await loadSubjects();
+            return true;
+        } catch (err) {
+            console.error('Failed to add multiple subjects:', err);
+            return false;
+        }
+    };
+
     const value = {
         subjects,
         loading,
@@ -260,10 +306,12 @@ export function SubjectsProvider({ children }) {
         addTopic,
         updateTopic,
         deleteTopic,
+        addMultipleSubjectsAndTopics,
         resetToDefaults,
         initializeFromDefaults,
         reload: loadSubjects
     };
+
 
     return (
         <SubjectsContext.Provider value={value}>

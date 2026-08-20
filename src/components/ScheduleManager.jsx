@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Plus, Check, ChevronDown, Calendar, Trash2, Loader2,
-    Settings2, GripVertical, RotateCcw, ChevronUp, ChevronRight, AlertTriangle
+    Settings2, GripVertical, RotateCcw, ChevronUp, ChevronRight, AlertTriangle, Zap, Sparkles, FileText
 } from 'lucide-react';
 import { useSubjects } from '../hooks/useSubjects.jsx';
 import { useSchedules } from '../hooks/useSchedules';
+import ScheduleImporterModal from './ScheduleImporterModal';
+
 
 // Dias da semana
 const WEEKDAYS = [
@@ -225,6 +227,38 @@ export function ScheduleModal({ isOpen, onClose, editSchedule = null }) {
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        {/* Banner para Importar / Gerar com IA */}
+                        {!editSchedule && (
+                            <div className="p-4 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950/30 dark:via-purple-950/30 dark:to-pink-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                        <Zap size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                                            Tem um cronograma pronto ou edital?
+                                        </h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Importe automaticamente a partir de texto, edital ou gere com assistência de IA.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onClose();
+                                        if (window.openScheduleImporter) {
+                                            window.openScheduleImporter();
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm whitespace-nowrap transition-all flex items-center gap-1.5"
+                                >
+                                    <Sparkles size={14} />
+                                    <span>Importar / IA</span>
+                                </button>
+                            </div>
+                        )}
+
                         {/* Nome */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -248,6 +282,7 @@ export function ScheduleModal({ isOpen, onClose, editSchedule = null }) {
                             Configurações Avançadas
                             <ChevronDown size={16} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
                         </button>
+
 
                         {/* Configurações Avançadas */}
                         <AnimatePresence>
@@ -503,8 +538,19 @@ export function ScheduleSwitcher() {
     const { schedules, activeSchedule, setActiveSchedule, deleteSchedule, loading } = useSchedules();
     const [isOpen, setIsOpen] = useState(false);
     const [showModal, setShowModal] = useState(false);
+    const [showImporterModal, setShowImporterModal] = useState(false);
     const [editingSchedule, setEditingSchedule] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null); // Schedule to confirm delete
+
+    // Permite que qualquer componente invoque o modal de importação
+    useEffect(() => {
+        window.openScheduleImporter = () => {
+            setShowImporterModal(true);
+        };
+        return () => {
+            delete window.openScheduleImporter;
+        };
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -547,6 +593,11 @@ export function ScheduleSwitcher() {
         setIsOpen(false);
     };
 
+    const handleOpenImporter = () => {
+        setShowImporterModal(true);
+        setIsOpen(false);
+    };
+
     if (loading) {
         return (
             <div className="h-9 w-40 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
@@ -556,17 +607,30 @@ export function ScheduleSwitcher() {
     if (schedules.length === 0) {
         return (
             <>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 border border-indigo-200/50 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300 hover:scale-105 transition-all"
-                >
-                    <Plus size={16} />
-                    <span className="text-sm font-medium">Criar Cronograma</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowImporterModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm hover:scale-105 transition-all text-xs font-bold"
+                    >
+                        <Sparkles size={14} />
+                        <span>Importar / IA</span>
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:scale-105 transition-all text-xs font-medium"
+                    >
+                        <Plus size={14} />
+                        <span>Manual</span>
+                    </button>
+                </div>
                 <ScheduleModal
                     isOpen={showModal}
                     onClose={handleCloseModal}
                     editSchedule={editingSchedule}
+                />
+                <ScheduleImporterModal
+                    isOpen={showImporterModal}
+                    onClose={() => setShowImporterModal(false)}
                 />
             </>
         );
@@ -589,12 +653,12 @@ export function ScheduleSwitcher() {
             </button>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-scale-in">
                     <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
                         {schedules.map(schedule => (
                             <div
                                 key={schedule.id}
-                                className={`flex items-center justify-between p-2 rounded-lg transition-colors ${schedule.id === activeSchedule?.id
+                                className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${schedule.id === activeSchedule?.id
                                     ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
                                     : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                                     }`}
@@ -604,13 +668,17 @@ export function ScheduleSwitcher() {
                                         setActiveSchedule(schedule.id);
                                         setIsOpen(false);
                                     }}
-                                    className="flex-1 flex items-center gap-2 cursor-pointer"
+                                    className="flex-1 flex items-center gap-2.5 cursor-pointer min-w-0"
                                 >
-                                    {schedule.id === activeSchedule?.id && <Check size={14} />}
+                                    {schedule.id === activeSchedule?.id ? (
+                                        <Check size={14} className="flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+                                    ) : (
+                                        <Calendar size={14} className="flex-shrink-0 text-slate-400" />
+                                    )}
                                     <span className="text-sm font-medium truncate">
                                         {schedule.name}
                                     </span>
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-[11px] px-1.5 py-0.5 bg-slate-200/60 dark:bg-slate-800 rounded text-slate-500 flex-shrink-0">
                                         {schedule.topicIds?.length || 0}
                                     </span>
                                 </div>
@@ -619,7 +687,7 @@ export function ScheduleSwitcher() {
                                         <button
                                             onClick={(e) => handleEdit(e, schedule)}
                                             className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded text-indigo-500 dark:text-indigo-400"
-                                            title="Editar cronograma"
+                                            title="Editar configurações"
                                         >
                                             <Settings2 size={14} />
                                         </button>
@@ -635,13 +703,22 @@ export function ScheduleSwitcher() {
                             </div>
                         ))}
                     </div>
-                    <div className="border-t border-slate-200 dark:border-slate-700 p-2">
+
+                    <div className="border-t border-slate-200 dark:border-slate-800 p-2 space-y-1 bg-slate-50/50 dark:bg-slate-900/50">
+                        <button
+                            onClick={handleOpenImporter}
+                            className="w-full flex items-center gap-2.5 p-2 rounded-xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/20 hover:via-purple-500/20 hover:to-pink-500/20 text-indigo-700 dark:text-indigo-300 font-semibold text-xs transition-all border border-indigo-200/40 dark:border-indigo-800/40"
+                        >
+                            <Zap size={14} className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Importar ou Gerar do Edital</span>
+                        </button>
+
                         <button
                             onClick={handleNewSchedule}
-                            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+                            className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors text-xs font-medium"
                         >
-                            <Plus size={16} />
-                            <span className="text-sm">Novo Cronograma</span>
+                            <Plus size={14} />
+                            <span>Novo Cronograma Manual</span>
                         </button>
                     </div>
                 </div>
@@ -652,6 +729,12 @@ export function ScheduleSwitcher() {
                 onClose={handleCloseModal}
                 editSchedule={editingSchedule}
             />
+
+            <ScheduleImporterModal
+                isOpen={showImporterModal}
+                onClose={() => setShowImporterModal(false)}
+            />
+
 
             {/* Modal de Confirmação de Exclusão */}
             {confirmDelete && createPortal(

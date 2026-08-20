@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Building2, Check, Sparkles } from 'lucide-react';
+import { BookOpen, Building2, Check, Sparkles, Zap } from 'lucide-react';
 import { SCHEDULE_PRESETS } from '../data/schedulePresets';
 import { useSchedules } from '../hooks/useSchedules';
+import ScheduleImporterModal from './ScheduleImporterModal';
 
 const ICON_MAP = {
     BookOpen,
@@ -16,6 +17,8 @@ export function InitialScheduleSelector() {
     const [creating, setCreating] = useState(false);
     const [dismissed, setDismissed] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [showImporter, setShowImporter] = useState(false);
+
 
     useEffect(() => {
         setMounted(true);
@@ -121,7 +124,7 @@ export function InitialScheduleSelector() {
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 pt-2 bg-slate-50 dark:bg-slate-800/50">
+                <div className="p-6 pt-2 bg-slate-50 dark:bg-slate-800/50 space-y-3">
                     <button
                         onClick={handleCreate}
                         disabled={!selectedPreset || creating}
@@ -132,17 +135,38 @@ export function InitialScheduleSelector() {
                         ) : (
                             <>
                                 <Check size={20} />
-                                Começar Estudos
+                                Começar Estudos com Este Cronograma
                             </>
                         )}
                     </button>
-                    <p className="text-center text-xs text-slate-400 mt-3">
-                        Você pode criar ou modificar cronogramas depois
+
+                    <div className="text-center">
+                        <button
+                            type="button"
+                            onClick={() => setShowImporter(true)}
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                            <Zap size={14} />
+                            <span>Ou importar meu cronograma / edital próprio</span>
+                        </button>
+                    </div>
+
+                    <p className="text-center text-xs text-slate-400 mt-1">
+                        Você pode criar, importar ou modificar cronogramas a qualquer momento
                     </p>
                 </div>
             </motion.div>
+
+            <ScheduleImporterModal
+                isOpen={showImporter}
+                onClose={() => {
+                    setShowImporter(false);
+                    setDismissed(true);
+                }}
+            />
         </motion.div>
     );
 
     return createPortal(modalContent, document.body);
 }
+
