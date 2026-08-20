@@ -83,11 +83,100 @@ const SCHEDULE = {
     }
 };
 
-const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, setNotes }) => {
+// Função auxiliar de ordenação natural (ex: 'week1', 'week2', 'week10' e 'Dia 01', 'Dia 02', 'Dia 10')
+const sortNaturalKeys = (arr) => {
+    return [...arr].sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.replace(/\D/g, '')) || 0;
+        return numA - numB;
+    });
+};
+
+// Calcula automaticamente o primeiro dia/semana pendente baseado no progresso
+const calculateActiveDayAndWeek = (schedule, progressObj = {}) => {
+    if (!schedule || typeof schedule !== 'object') {
+        return { week: 'week1', day: 'Dia 01' };
+    }
+
+    const sortedWeeks = sortNaturalKeys(Object.keys(schedule));
+    if (sortedWeeks.length === 0) {
+        return { week: 'week1', day: 'Dia 01' };
+    }
+
+    let firstIncompleteDay = null;
+    let lastValidDay = null;
+
+    for (const weekKey of sortedWeeks) {
+        const weekDays = schedule[weekKey];
+        if (!weekDays || typeof weekDays !== 'object') continue;
+
+        const sortedDays = sortNaturalKeys(Object.keys(weekDays));
+
+        for (const dayKey of sortedDays) {
+            const rawTopics = weekDays[dayKey] || [];
+            lastValidDay = { week: weekKey, day: dayKey };
+
+            // Filtrar itens especiais (descanso/revisão)
+            const studyTopicIds = rawTopics.filter(id => id !== 'rest' && id !== 'review');
+
+            // Se for dia de descanso ou revisão sem matérias adicionadas:
+            if (studyTopicIds.length === 0) {
+                if (!firstIncompleteDay) {
+                    firstIncompleteDay = { week: weekKey, day: dayKey };
+                    return firstIncompleteDay;
+                }
+                continue;
+            }
+
+            // Um dia é concluído se todos os seus tópicos tiveram leitura ou revisão/questões feitas
+            const isDayDone = studyTopicIds.every(topicId => {
+                const p = progressObj?.[topicId];
+                if (!p) return false;
+                return Boolean(p.read || p.is_read || p.reviewed || p.is_reviewed || p.questions?.completed || (p.questions?.total && p.questions.total > 0));
+            });
+
+            if (!isDayDone) {
+                firstIncompleteDay = { week: weekKey, day: dayKey };
+                return firstIncompleteDay;
+            }
+        }
+    }
+
+    return firstIncompleteDay || lastValidDay || { week: sortedWeeks[0], day: 'Dia 01' };
+};
+
+const DailySchedule = ({ progress = {}, toggleCheck, updateQuestionMetrics, notes, setNotes }) => {
     const { subjects, addTopic } = useSubjects();
     const { activeSchedule, filteredSubjects, saveCustomSchedule } = useSchedules();
-    const [selectedWeek, setSelectedWeek] = useState('week1');
-    const [selectedDay, setSelectedDay] = useState('Dia 01');
+
+    // Resolve estrutura do cronograma (customizado ou dinâmico)
+    const dynamicSchedule = useMemo(() => {
+        if (!activeSchedule) return SCHEDULE;
+        return resolveScheduleStructure(activeSchedule, subjects);
+    }, [activeSchedule, subjects]);
+
+    // Calcula dia e semana em andamento atual
+    const activeDayInfo = useMemo(() => {
+        return calculateActiveDayAndWeek(dynamicSchedule, progress);
+    }, [dynamicSchedule, progress]);
+
+    // Inicia diretamente no dia atual em andamento
+    const [selectedWeek, setSelectedWeek] = useState(() => activeDayInfo.week);
+    const [selectedDay, setSelectedDay] = useState(() => activeDayInfo.day);
+
+    const initialScheduleIdRef = React.useRef(activeSchedule?.id);
+    const hasAutoSelectedRef = React.useRef(false);
+
+    // Quando o cronograma é carregado ou alternado, seleciona o dia atual
+    useEffect(() => {
+        if (!hasAutoSelectedRef.current || initialScheduleIdRef.current !== activeSchedule?.id) {
+            initialScheduleIdRef.current = activeSchedule?.id;
+            hasAutoSelectedRef.current = true;
+            setSelectedWeek(activeDayInfo.week);
+            setSelectedDay(activeDayInfo.day);
+        }
+    }, [activeSchedule?.id, activeDayInfo.week, activeDayInfo.day]);
+
     const [expandedCard, setExpandedCard] = useState(null);
     const { getRemindersByDate, addReminder, toggleDone, deleteReminder, reminders } = useReminders();
     const [scheduleReminderText, setScheduleReminderText] = useState('');
@@ -101,14 +190,8 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
     const [newQuickTopicTitle, setNewQuickTopicTitle] = useState('');
     const [newQuickTopicSubjectId, setNewQuickTopicSubjectId] = useState('');
 
-    // Resolve estrutura do cronograma (customizado ou dinâmico)
-    const dynamicSchedule = useMemo(() => {
-        if (!activeSchedule) return SCHEDULE;
-        return resolveScheduleStructure(activeSchedule, subjects);
-    }, [activeSchedule, subjects]);
-
-    // Lista de semanas disponíveis
-    const weeks = useMemo(() => Object.keys(dynamicSchedule).sort(), [dynamicSchedule]);
+    // Lista de semanas disponíveis ordenadas naturalmente
+    const weeks = useMemo(() => sortNaturalKeys(Object.keys(dynamicSchedule)), [dynamicSchedule]);
 
     // Garante que a semana selecionada exista
     useEffect(() => {
@@ -120,7 +203,7 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
     const days = useMemo(() => {
         const weekData = dynamicSchedule[selectedWeek];
         if (!weekData) return [];
-        return Object.keys(weekData).sort();
+        return sortNaturalKeys(Object.keys(weekData));
     }, [selectedWeek, dynamicSchedule]);
 
     useEffect(() => {
@@ -384,23 +467,44 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                 <div className="flex flex-col gap-3 w-full xl:w-auto">
                     <div className="flex items-center gap-2">
                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg overflow-x-auto no-scrollbar flex-1 xl:w-auto">
-                            <div className="flex min-w-max">
-                                {weeks.map((week, index) => (
-                                    <button
-                                        key={week}
-                                        onClick={() => setSelectedWeek(week)}
-                                        className={cn(
-                                            "px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap",
-                                            selectedWeek === week
-                                                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                                        )}
-                                    >
-                                        Semana {index + 1}
-                                    </button>
-                                ))}
+                            <div className="flex min-w-max items-center gap-1">
+                                {weeks.map((week, index) => {
+                                    const isCurrentActiveWeek = activeDayInfo.week === week;
+                                    return (
+                                        <button
+                                            key={week}
+                                            onClick={() => setSelectedWeek(week)}
+                                            className={cn(
+                                                "px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5",
+                                                selectedWeek === week
+                                                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                                            )}
+                                        >
+                                            <span>Semana {index + 1}</span>
+                                            {isCurrentActiveWeek && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Semana atual em andamento" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
+
+                        {/* Botão rápido para voltar ao dia atual */}
+                        {(!isEditMode && (selectedWeek !== activeDayInfo.week || selectedDay !== activeDayInfo.day)) && (
+                            <button
+                                onClick={() => {
+                                    setSelectedWeek(activeDayInfo.week);
+                                    setSelectedDay(activeDayInfo.day);
+                                }}
+                                className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0 animate-pulse"
+                                title="Voltar direto para o dia que você está estudando"
+                            >
+                                <Sparkles size={13} />
+                                <span>Dia Atual ({activeDayInfo.day})</span>
+                            </button>
+                        )}
 
                         {isEditMode && (
                             <button
@@ -415,20 +519,40 @@ const DailySchedule = ({ progress, toggleCheck, updateQuestionMetrics, notes, se
                     </div>
 
                     <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
-                        {days.map(day => (
-                            <button
-                                key={day}
-                                onClick={() => setSelectedDay(day)}
-                                className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0",
-                                    selectedDay === day
-                                        ? "bg-blue-600 text-white shadow-md"
-                                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300"
-                                )}
-                            >
-                                {day}
-                            </button>
-                        ))}
+                        {days.map(day => {
+                            const rawIds = dynamicSchedule[selectedWeek]?.[day] || [];
+                            const studyIds = rawIds.filter(id => id !== 'rest' && id !== 'review');
+                            const isDayDone = studyIds.length > 0 && studyIds.every(id => {
+                                const p = progress?.[id];
+                                return Boolean(p?.read || p?.is_read || p?.reviewed || p?.is_reviewed || p?.questions?.completed || (p?.questions?.total && p.questions.total > 0));
+                            });
+                            const isCurrentActiveDay = activeDayInfo.week === selectedWeek && activeDayInfo.day === day;
+
+                            return (
+                                <button
+                                    key={day}
+                                    onClick={() => setSelectedDay(day)}
+                                    className={cn(
+                                        "px-3.5 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5",
+                                        selectedDay === day
+                                            ? "bg-blue-600 text-white shadow-md font-bold"
+                                            : isDayDone
+                                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/40 hover:bg-emerald-100"
+                                                : isCurrentActiveDay
+                                                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 font-bold"
+                                                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300"
+                                    )}
+                                >
+                                    <span>{day}</span>
+                                    {isDayDone && (
+                                        <CheckCircle2 size={13} className={cn(selectedDay === day ? "text-white" : "text-emerald-500")} />
+                                    )}
+                                    {!isDayDone && isCurrentActiveDay && (
+                                        <span className={cn("w-1.5 h-1.5 rounded-full", selectedDay === day ? "bg-white" : "bg-amber-500 animate-pulse")} />
+                                    )}
+                                </button>
+                            );
+                        })}
 
                         {isEditMode && (
                             <button
