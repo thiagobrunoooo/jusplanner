@@ -46,7 +46,7 @@ import { useReminders } from '../hooks/useReminders';
 
 
 
-const Dashboard = ({ progress, dailyHistory, studyTime }) => {
+const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats = {}, onNavigate }) => {
     const { filteredSubjects, activeSchedule } = useSchedules();
     const { todayReminders, pendingCount, addReminder, updateReminder, toggleDone, togglePin, deleteReminder } = useReminders();
     const [newReminderText, setNewReminderText] = useState('');
@@ -106,27 +106,32 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
     }, [todayReminders, reminderFilter]);
 
     const doneCount = useMemo(() => todayReminders.filter(r => r.is_done).length, [todayReminders]);
-    const { dynamicSchedule } = useMemo(() => {
-        if (!activeSchedule) return { dynamicSchedule: {} };
-        const subjectsToUse = filteredSubjects && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
-        return { dynamicSchedule: resolveScheduleStructure(activeSchedule, subjectsToUse) };
+
+    // Calculate dynamic schedule based on active schedule or fallback to default
+    const dynamicSchedule = useMemo(() => {
+        const subjectsToUse = filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
+
+        if (!activeSchedule) {
+            const allTopicIds = subjectsToUse.flatMap(s => s.topics.map(t => t.id));
+            return generateDynamicSchedule(allTopicIds, subjectsToUse);
+        }
+
+        return resolveScheduleStructure(activeSchedule, subjectsToUse);
     }, [activeSchedule, filteredSubjects]);
 
-
+    // Calculate Stats with real progress & active schedule
     const stats = useMemo(() => {
+        const subjectsToUse = filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
+        const validTopicIds = new Set(subjectsToUse.flatMap(s => s.topics.map(t => t.id)));
+
         let totalQuestions = 0;
         let totalCorrect = 0;
-        let totalTopics = 0;
         let topicsStudied = 0;
-        let totalDays = 0;
-        let currentDay = 0;
-
-        const subjectsToUse = activeSchedule && filteredSubjects.length > 0 ? filteredSubjects : SUBJECTS;
-        const validTopicIds = new Set(subjectsToUse.flatMap(s => s.topics.map(t => t.id)));
+        let totalTopics = 0;
 
         const totalMinutes = studyTime
             ? Object.entries(studyTime)
-                .filter(([subjectId]) => subjectsToUse.some(s => s.id === subjectId))
+                .filter(([tId]) => validTopicIds.has(tId))
                 .reduce((acc, [_, curr]) => acc + curr, 0) / 60
             : 0;
 
@@ -174,83 +179,99 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
         totalTopics = subjectsToUse.reduce((acc, s) => acc + s.topics.length, 0);
         topicsStudied = Object.entries(progress).filter(([tId, p]) => validTopicIds.has(tId) && p.read).length;
 
-        totalDays = 0;
-        if (dynamicSchedule) {
-            Object.values(dynamicSchedule).forEach(week => {
-                totalDays += Object.keys(week).length;
+        // Natural key sort
+        const sortNatural = (arr) => [...arr].sort((a, b) => {
+            const numA = parseInt(a.replace(/\D/g, '')) || 0;
+            const numB = parseInt(b.replace(/\D/g, '')) || 0;
+            return numA - numB;
+        });
+
+        let activeWeekKey = 'week1';
+        let activeDayKey = 'Dia 01';
+        let activeWeekNum = 1;
+        let activeDayNum = 1;
+        let todayTopicsList = [];
+        let isTodayRest = false;
+        let isTodayReview = false;
+        let todayCompletedTasks = 0;
+        let todayTotalTasks = 0;
+        let totalDaysCount = 0;
+        let currentDayIndexInTotal = 1;
+
+        if (dynamicSchedule && typeof dynamicSchedule === 'object') {
+            const sortedWeeks = sortNatural(Object.keys(dynamicSchedule));
+            let foundIncomplete = false;
+            let dayCounter = 0;
+
+            for (const wKey of sortedWeeks) {
+                const wDays = dynamicSchedule[wKey];
+                if (!wDays || typeof wDays !== 'object') continue;
+                const sortedDays = sortNatural(Object.keys(wDays));
+
+                for (const dKey of sortedDays) {
+                    dayCounter++;
+                    const rawIds = wDays[dKey] || [];
+                    const studyIds = rawIds.filter(id => id !== 'rest' && id !== 'review');
+
+                    if (studyIds.length === 0) {
+                        if (!foundIncomplete) {
+                            activeWeekKey = wKey;
+                            activeDayKey = dKey;
+                            currentDayIndexInTotal = dayCounter;
+                            foundIncomplete = true;
+                        }
+                        continue;
+                    }
+
+                    const isDone = studyIds.every(id => {
+                        const p = progress?.[id];
+                        return Boolean(p?.read || p?.is_read || p?.reviewed || p?.is_reviewed || p?.questions?.completed || (p?.questions?.total && p.questions.total > 0));
+                    });
+
+                    if (!isDone && !foundIncomplete) {
+                        activeWeekKey = wKey;
+                        activeDayKey = dKey;
+                        currentDayIndexInTotal = dayCounter;
+                        foundIncomplete = true;
+                    }
+                }
+            }
+
+            totalDaysCount = dayCounter;
+            if (!foundIncomplete && sortedWeeks.length > 0) {
+                activeWeekKey = sortedWeeks[sortedWeeks.length - 1];
+                const daysInLastWeek = sortNatural(Object.keys(dynamicSchedule[activeWeekKey] || {}));
+                if (daysInLastWeek.length > 0) {
+                    activeDayKey = daysInLastWeek[daysInLastWeek.length - 1];
+                    currentDayIndexInTotal = totalDaysCount;
+                }
+            }
+
+            activeWeekNum = parseInt(activeWeekKey.replace(/\D/g, '')) || 1;
+            activeDayNum = parseInt(activeDayKey.replace(/\D/g, '')) || 1;
+
+            const dayRawIds = dynamicSchedule[activeWeekKey]?.[activeDayKey] || [];
+            isTodayRest = dayRawIds.length === 1 && dayRawIds[0] === 'rest';
+            isTodayReview = dayRawIds.length === 1 && dayRawIds[0] === 'review';
+
+            const allTopics = subjectsToUse.flatMap(s => s.topics.map(t => ({ ...t, subjectTitle: s.title, subjectColor: s.color, subjectBgLight: s.bgLight })));
+            todayTopicsList = dayRawIds
+                .filter(id => id !== 'rest' && id !== 'review')
+                .map(id => allTopics.find(t => t.id === id))
+                .filter(Boolean);
+
+            todayTotalTasks = todayTopicsList.length * 3;
+            todayTopicsList.forEach(t => {
+                const p = progress?.[t.id];
+                if (p?.read || p?.is_read) todayCompletedTasks++;
+                if (p?.reviewed || p?.is_reviewed) todayCompletedTasks++;
+                if (p?.questions?.completed || (p?.questions?.total && p.questions.total > 0) || p?.questions === true) todayCompletedTasks++;
             });
         }
 
-        currentDay = 1;
-        let daysCounted = 0;
-        let foundCurrent = false;
-
-        if (dynamicSchedule) {
-            const weeks = Object.keys(dynamicSchedule).sort();
-            for (const week of weeks) {
-                const days = Object.keys(dynamicSchedule[week]).sort();
-                for (const day of days) {
-                    if (dynamicSchedule[week][day]) {
-                        daysCounted++;
-                        const dayTopics = dynamicSchedule[week][day];
-                        const isDayComplete = dayTopics.every(tId => progress[tId]?.read);
-
-                        if (!isDayComplete && !foundCurrent) {
-                            currentDay = daysCounted;
-                            foundCurrent = true;
-                        }
-                    }
-                }
-            }
-        }
-        if (!foundCurrent && daysCounted > 0) currentDay = daysCounted;
-        if (daysCounted === 0) currentDay = 0;
-
-        let nextGoal = { title: 'Tudo Concluído!', progress: 100 };
-        let foundGoal = false;
-
-        if (dynamicSchedule) {
-            const weeks = Object.keys(dynamicSchedule).sort();
-            for (const week of weeks) {
-                if (foundGoal) break;
-                const days = Object.keys(dynamicSchedule[week]).sort();
-                for (const day of days) {
-                    if (dynamicSchedule[week][day]) {
-                        const dayTopicsIds = dynamicSchedule[week][day];
-                        for (const tId of dayTopicsIds) {
-                            if (!validTopicIds.has(tId)) continue;
-
-                            const topicData = progress[tId] || {};
-                            const isRead = topicData.read;
-                            const isReviewed = topicData.reviewed;
-                            const isQuestions = topicData.questions === true || topicData.questions?.completed;
-
-                            if (!isRead || !isReviewed || !isQuestions) {
-                                const topicObj = subjectsToUse.flatMap(s => s.topics).find(t => t.id === tId);
-                                if (topicObj) {
-                                    let stepsCompleted = 0;
-                                    if (isRead) stepsCompleted++;
-                                    if (isReviewed) stepsCompleted++;
-                                    if (isQuestions) stepsCompleted++;
-
-                                    nextGoal = {
-                                        title: topicObj.title,
-                                        progress: Math.round((stepsCompleted / 3) * 100)
-                                    };
-                                    foundGoal = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (foundGoal) break;
-                }
-            }
-        }
-
-        if (!foundGoal && totalTopics > 0 && topicsStudied < totalTopics) {
-            nextGoal = { title: 'Continuar Estudos', progress: 0 };
-        }
+        const todayProgress = todayTotalTasks > 0
+            ? Math.round((todayCompletedTasks / todayTotalTasks) * 100)
+            : (isTodayRest || isTodayReview ? 100 : 0);
 
         const planProgress = totalTopics > 0 ? Math.round((topicsStudied / totalTopics) * 100) : 0;
 
@@ -260,11 +281,22 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
             pieData,
             totalTopics,
             topicsStudied,
-            totalDays,
-            currentDay,
+            totalDays: totalDaysCount || 60,
+            currentDay: currentDayIndexInTotal || 1,
             planProgress,
-            nextGoal,
-            formattedTime
+            formattedTime,
+            todayStudy: {
+                weekKey: activeWeekKey,
+                dayKey: activeDayKey,
+                weekNum: activeWeekNum,
+                dayNum: activeDayNum,
+                topics: todayTopicsList,
+                isRest: isTodayRest,
+                isReview: isTodayReview,
+                totalTasks: todayTotalTasks,
+                completedTasks: todayCompletedTasks,
+                progress: todayProgress
+            }
         };
     }, [progress, studyTime, filteredSubjects, activeSchedule, dynamicSchedule]);
 
@@ -529,11 +561,126 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-emerald-500/20 dark:bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
                     </div>
                 </motion.div>
+
+                {/* Card 3: Estudar Hoje (Substituindo a Próxima Meta e integrado ao Cronograma) */}
+                <motion.div
+                    variants={cardVariants}
+                    onClick={() => onNavigate?.('schedule')}
+                    whileHover={{
+                        scale: 1.02,
+                        y: -4,
+                        transition: { type: "spring", stiffness: 400, damping: 17 }
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative bg-gradient-to-br from-amber-400 via-orange-500 to-indigo-600 dark:from-amber-600 dark:via-orange-600 dark:to-indigo-700 rounded-3xl p-[2px] shadow-xl shadow-orange-500/20 dark:shadow-orange-500/10 group cursor-pointer overflow-hidden"
+                >
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                        initial={{ x: "-100%" }}
+                        whileHover={{ x: "100%" }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                    />
+
+                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2.5">
+                                    <motion.div
+                                        className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 rounded-xl text-amber-600 dark:text-amber-400 shadow-sm"
+                                        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                                        transition={{ duration: 0.5 }}
+                                    >
+                                        <Sparkles size={20} />
+                                    </motion.div>
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Estudar Hoje</h3>
+                                </div>
+
+                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/70 px-2.5 py-1 rounded-lg border border-amber-300/80 dark:border-amber-700/60 shadow-xs flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                    <span>{stats.todayStudy.weekKey.replace('week', 'Sem. ')} • {stats.todayStudy.dayKey}</span>
+                                </span>
+                            </div>
+
+                            {/* Conteúdo resumido do dia de hoje */}
+                            <div className="space-y-1.5 mt-2">
+                                {stats.todayStudy.isRest ? (
+                                    <div className="py-2">
+                                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                            <span>☕ Dia de Descanso</span>
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Recarregue as energias para o próximo ciclo</p>
+                                    </div>
+                                ) : stats.todayStudy.isReview ? (
+                                    <div className="py-2">
+                                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                            <span>🔄 Revisão e Questões</span>
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Consolidação da memória e treino de fixação</p>
+                                    </div>
+                                ) : stats.todayStudy.topics.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {stats.todayStudy.topics.slice(0, 2).map((topic) => (
+                                            <div key={topic.id} className="flex items-center gap-2 min-w-0">
+                                                <span className={cn(
+                                                    "text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 truncate max-w-[110px]",
+                                                    topic.subjectBgLight ? `${topic.subjectBgLight} ${topic.subjectColor} border-transparent` : "bg-slate-100 text-slate-600 border-slate-200"
+                                                )}>
+                                                    {topic.subjectTitle}
+                                                </span>
+                                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                                    {topic.title}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {stats.todayStudy.topics.length > 2 && (
+                                            <p className="text-[11px] font-bold text-slate-400">
+                                                + {stats.todayStudy.topics.length - 2} outros tópicos hoje
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="py-2">
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Plano Pronto para Estudar</p>
+                                        <p className="text-xs text-slate-400">Clique para abrir sua grade diária</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Barra de Progresso e Ação */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between relative z-10">
+                            <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+                                <div className="h-2 w-28 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${stats.todayStudy.progress}%` }}
+                                        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
+                                    />
+                                </div>
+                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                    {stats.todayStudy.completedTasks}/{stats.todayStudy.totalTasks} tarefas
+                                </span>
+                            </div>
+
+                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 flex-shrink-0">
+                                <span>Abrir</span>
+                                <span>→</span>
+                            </span>
+                        </div>
+
+                        <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
+                            <Sparkles size={160} strokeWidth={1} />
+                        </div>
+
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-orange-500/20 dark:bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
+                    </div>
+                </motion.div>
             </motion.div>
 
-            {/* SECTION 2: KEY METRICS */}
+            {/* SECTION 2: KEY METRICS (4 CARDS) */}
             <motion.div
-                className="grid grid-cols-1 md:grid-cols-4 gap-5"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
                 variants={containerVariants}
             >
                 {/* Metric 0: Tempo Líquido */}
@@ -552,7 +699,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-xl text-blue-600 dark:text-blue-400"
+                                    className="p-2.5 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-xl text-blue-600 dark:text-blue-400 shadow-xs"
                                     whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
                                     transition={{ duration: 0.5 }}
                                 >
@@ -591,7 +738,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 rounded-xl text-purple-600 dark:text-purple-400"
+                                    className="p-2.5 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 rounded-xl text-purple-600 dark:text-purple-400 shadow-xs"
                                     whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
                                     transition={{ duration: 0.5 }}
                                 >
@@ -630,7 +777,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-xl text-green-600 dark:text-green-400"
+                                    className="p-2.5 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-xl text-green-600 dark:text-green-400 shadow-xs"
                                     whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
                                     transition={{ duration: 0.5 }}
                                 >
@@ -658,7 +805,7 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                     </div>
                 </motion.div>
 
-                {/* Metric 3: Próxima Meta */}
+                {/* Metric 3: Ofensiva / Sequência de Estudos (4º card para completar a grade com 4 cards) */}
                 <motion.div
                     variants={metricCardVariants}
                     whileHover={{
@@ -669,39 +816,30 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
                     whileTap={{ scale: 0.97 }}
                     className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-red-500/10 dark:from-orange-400/5 dark:to-red-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-400/5 dark:to-orange-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40 rounded-xl text-orange-600 dark:text-orange-400"
-                                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
-                                    transition={{ duration: 0.5 }}
+                                    className="p-2.5 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-xl text-amber-600 dark:text-amber-400 shadow-xs"
+                                    animate={{ scale: [1, 1.08, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                                 >
-                                    <Target size={22} />
+                                    <Flame size={22} className="text-amber-500 fill-amber-500" />
                                 </motion.div>
-                                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Próxima Meta</h3>
+                                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Ofensiva</h3>
                             </div>
                         </div>
                         <div>
                             <motion.p
-                                className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate"
+                                className="text-3xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.45, type: "spring", stiffness: 100 }}
-                                title={stats.nextGoal.title}
                             >
-                                {stats.nextGoal.title}
+                                {userStats?.streak || 1} {(userStats?.streak || 1) === 1 ? 'Dia' : 'Dias'}
                             </motion.p>
-                            <div className="mt-2 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <motion.div
-                                    className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${stats.nextGoal.progress}%` }}
-                                    transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
-                                />
-                            </div>
-                            <p className="text-xs text-slate-400 mt-1">{stats.nextGoal.progress}% concluído</p>
+                            <p className="text-xs text-slate-400 mt-1">Sequência de estudos ativa</p>
                         </div>
                     </div>
                 </motion.div>

@@ -424,7 +424,7 @@ function App() {
         <main className="flex-1 p-6 md:p-8 w-full overflow-y-auto">
           <div key={activeTab} className="animate-tab-enter space-y-6">
             {activeTab === 'dashboard' && (
-              isInitialLoading ? <DashboardSkeleton /> : <Dashboard progress={progress} dailyHistory={dailyHistory} studyTime={studyTime} />
+              isInitialLoading ? <DashboardSkeleton /> : <Dashboard progress={progress} dailyHistory={dailyHistory} studyTime={studyTime} userStats={userStats} onNavigate={setActiveTab} />
             )}
             {activeTab === 'schedule' && (
               isInitialLoading ? <ScheduleSkeleton /> : (
