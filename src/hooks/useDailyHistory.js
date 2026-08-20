@@ -27,9 +27,9 @@ export const useDailyHistory = (initialHistory) => {
                     const historyMap = {};
                     data.forEach(row => {
                         historyMap[row.date] = {
-                            questions: row.questions_count || 0,
-                            time: row.study_time || 0,
-                            xp: row.xp_earned || 0
+                            questions: Number(row.questions_count) || 0,
+                            time: Number(row.study_time) || 0,
+                            xp: Number(row.xp_earned) || 0
                         };
                     });
                     setHistory(prev => {
@@ -61,9 +61,9 @@ export const useDailyHistory = (initialHistory) => {
                             const newState = {
                                 ...prev,
                                 [payload.new.date]: {
-                                    questions: payload.new.questions_count || 0,
-                                    time: payload.new.study_time || 0,
-                                    xp: payload.new.xp_earned || 0
+                                    questions: Number(payload.new.questions_count) || 0,
+                                    time: Number(payload.new.study_time) || 0,
+                                    xp: Number(payload.new.xp_earned) || 0
                                 }
                             };
                             if (!window.isResetting) localStorage.setItem(`dailyHistory_${user.id}`, JSON.stringify(newState));
@@ -77,25 +77,38 @@ export const useDailyHistory = (initialHistory) => {
     }, [user?.id]);
 
     const saveToSupabase = async (newHistory) => {
-        if (!user) return;
-        const today = new Date().toLocaleDateString('en-CA');
-        const dayData = newHistory[today] || { questions: 0, time: 0, xp: 0 };
-
-        // Handle legacy format (if just a number)
-        const questions = typeof dayData === 'number' ? dayData : (dayData.questions || 0);
-        const time = typeof dayData === 'object' ? (dayData.time || 0) : 0;
-        const xp = typeof dayData === 'object' ? (dayData.xp || 0) : 0;
+        if (!user || !newHistory) return;
 
         try {
-            await supabase.from('daily_history').upsert({
-                user_id: user.id,
-                date: today,
-                questions_count: questions,
-                study_time: time,
-                xp_earned: xp,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id, date' });
-        } catch (err) { console.error(err); }
+            const rowsToUpsert = Object.entries(newHistory)
+                .filter(([dateStr]) => dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr))
+                .map(([dateStr, dayData]) => {
+                    let questions = 0;
+                    if (typeof dayData === 'number' && !isNaN(dayData)) {
+                        questions = dayData;
+                    } else if (dayData && typeof dayData === 'object') {
+                        questions = Number(dayData.questions || dayData.questions_count || 0) || 0;
+                    } else if (typeof dayData === 'string') {
+                        questions = parseInt(dayData, 10) || 0;
+                    }
+
+                    const time = typeof dayData === 'object' ? (Number(dayData?.time || dayData?.study_time) || 0) : 0;
+                    const xp = typeof dayData === 'object' ? (Number(dayData?.xp || dayData?.xp_earned) || 0) : 0;
+
+                    return {
+                        user_id: user.id,
+                        date: dateStr,
+                        questions_count: questions,
+                        study_time: time,
+                        xp_earned: xp,
+                        updated_at: new Date().toISOString()
+                    };
+                });
+
+            if (rowsToUpsert.length > 0) {
+                await supabase.from('daily_history').upsert(rowsToUpsert, { onConflict: 'user_id, date' });
+            }
+        } catch (err) { console.error('Error saving daily history to Supabase:', err); }
     };
 
     const debouncedSave = useDebouncedSave(saveToSupabase);

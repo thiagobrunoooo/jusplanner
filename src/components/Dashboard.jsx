@@ -268,46 +268,79 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
         };
     }, [progress, studyTime, filteredSubjects, activeSchedule, dynamicSchedule]);
 
-    const weeklyChartData = useMemo(() => {
-        const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
-        const today = new Date();
-        const currentDayIndex = today.getDay();
-        const adjustedDayIndex = currentDayIndex === 0 ? 6 : currentDayIndex - 1;
-        const mondayDate = new Date(today);
-        mondayDate.setDate(today.getDate() - adjustedDayIndex);
+    const { chartData: weeklyChartData, totalLast7Days, avgLast7Days } = useMemo(() => {
+        const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const fullDaysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const list = [];
+        let total = 0;
 
-        return days.map((dayName, index) => {
-            const date = new Date(mondayDate);
-            date.setDate(mondayDate.getDate() + index);
-            const dateStr = date.toLocaleDateString('en-CA');
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+            const dayOfWeekShort = daysOfWeek[date.getDay()];
+            const dayOfWeekFull = fullDaysOfWeek[date.getDay()];
+            const dayMonth = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
 
+            // Label exibido no eixo X
+            let label = `${dayOfWeekShort} ${dayMonth}`;
+            let fullTitle = `${dayOfWeekFull}, ${dayMonth}`;
+            if (i === 0) {
+                label = 'Hoje';
+                fullTitle = `Hoje (${dayOfWeekFull}, ${dayMonth})`;
+            } else if (i === 1) {
+                label = 'Ontem';
+                fullTitle = `Ontem (${dayOfWeekFull}, ${dayMonth})`;
+            }
+
+            // 1. Busca no dailyHistory
             const entry = dailyHistory[dateStr];
             let count = 0;
-            if (typeof entry === 'number') {
+            if (typeof entry === 'number' && !isNaN(entry)) {
                 count = entry;
-            } else if (entry) {
-                count = entry.questions || 0;
+            } else if (entry && typeof entry === 'object') {
+                count = Number(entry.questions || entry.questions_count || 0) || 0;
+            } else if (typeof entry === 'string') {
+                count = parseInt(entry, 10) || 0;
             }
 
-            const isToday = dateStr === new Date().toLocaleDateString('en-CA');
-            if (count === 0 && isToday) {
-                const todayISO = dateStr;
-                Object.values(progress).forEach(p => {
-                    if (p.updated_at) {
-                        const pDate = new Date(p.updated_at);
-                        const pDateStr = pDate.toLocaleDateString('en-CA');
-                        if (pDateStr === todayISO) {
-                            count += (p.questions?.total || 0);
-                        }
-                    }
-                });
-            }
+            // 2. Busca e valida no progresso de tópicos timestampados para este dia
+            let progressCountForDay = 0;
+            Object.values(progress || {}).forEach(p => {
+                if (!p) return;
+                const q = p.questions;
+                const qTotal = typeof q === 'object' ? Number(q.total || 0) : (q === true ? 1 : 0);
 
-            return {
-                name: dayName,
-                questoes: count
-            };
-        });
+                // Verifica se há registro timestampado neste dia
+                const completedDate = q?.completed_date;
+                const lastCompleted = q?.last_completed_at || p.updated_at;
+                const historyCount = p.questions_history?.[dateStr];
+
+                if (historyCount !== undefined && historyCount !== null) {
+                    progressCountForDay += Number(historyCount) || 0;
+                } else if (completedDate === dateStr) {
+                    progressCountForDay += qTotal;
+                } else if (lastCompleted && lastCompleted.startsWith(dateStr) && qTotal > 0) {
+                    progressCountForDay += qTotal;
+                }
+            });
+
+            const finalCount = Math.max(count, progressCountForDay);
+            total += finalCount;
+
+            list.push({
+                name: label,
+                fullTitle: fullTitle,
+                dateStr: dateStr,
+                questoes: finalCount
+            });
+        }
+
+        return {
+            chartData: list,
+            totalLast7Days: total,
+            avgLast7Days: Math.round(total / 7)
+        };
     }, [dailyHistory, progress]);
 
     const containerVariants = {
@@ -676,28 +709,64 @@ const Dashboard = ({ progress, dailyHistory, studyTime }) => {
 
             {/* SECTION 3: CHARTS + AVISOS */}
             <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={containerVariants}>
-                {/* Weekly Activity Chart */}
+                {/* Weekly Activity Chart (Últimos 7 Dias) */}
                 <motion.div
                     variants={cardVariants}
-                    className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors"
+                    className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors flex flex-col justify-between"
                 >
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-6">Questões na Semana</h3>
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60">
+                                <CheckCircle2 size={20} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">Questões nos Últimos 7 Dias</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Histórico diário contínuo de resolução</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60">
+                                {totalLast7Days} {totalLast7Days === 1 ? 'questão' : 'questões'}
+                            </span>
+                            {totalLast7Days > 0 && (
+                                <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline-block">
+                                    • Média {avgLast7Days}/dia
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="h-64 w-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={weeklyChartData}>
+                            <LineChart data={weeklyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-slate-800" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
-                                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} stroke="#94a3b8" />
+                                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} stroke="#94a3b8" allowDecimals={false} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-slate-900/95 text-white dark:bg-slate-800/95 p-3 rounded-xl shadow-xl border border-slate-700 text-xs backdrop-blur-sm">
+                                                    <p className="font-semibold text-slate-300 mb-1">{data.fullTitle}</p>
+                                                    <p className="text-base font-bold text-indigo-400 flex items-center gap-1.5">
+                                                        <span>🎯 {data.questoes}</span>
+                                                        <span className="text-xs font-normal text-slate-300">{data.questoes === 1 ? 'questão feita' : 'questões feitas'}</span>
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                 />
                                 <Line
                                     type="monotone"
                                     dataKey="questoes"
-                                    stroke="#4f46e5"
+                                    stroke="#6366f1"
                                     strokeWidth={3}
-                                    dot={{ fill: '#4f46e5', strokeWidth: 2, r: 4 }}
-                                    activeDot={{ r: 6, fill: '#4f46e5' }}
+                                    dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                                    activeDot={{ r: 6, fill: '#4f46e5', stroke: '#fff', strokeWidth: 2 }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>

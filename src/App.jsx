@@ -199,17 +199,63 @@ function App() {
 
   // Shared Handlers - memoized to prevent child re-renders
   const toggleCheck = useCallback((topicId, type) => {
+    const today = new Date().toLocaleDateString('en-CA');
     setProgress(prev => {
       const currentTopic = prev[topicId] || {};
-      const newValue = !currentTopic[type];
+      const currentVal = type === 'questions'
+        ? (typeof currentTopic.questions === 'object' ? Boolean(currentTopic.questions.completed) : Boolean(currentTopic.questions))
+        : Boolean(currentTopic[type]);
+
+      const newValue = !currentVal;
 
       if (newValue) {
         checkStreak();
         if (type === 'read') addXp(50);
         if (type === 'reviewed') addXp(30);
+        if (type === 'questions') addXp(40);
       } else {
         if (type === 'read') addXp(-50);
         if (type === 'reviewed') addXp(-30);
+        if (type === 'questions') addXp(-40);
+      }
+
+      if (type === 'questions') {
+        const prevQuestions = typeof currentTopic.questions === 'object' ? currentTopic.questions : {};
+        const qTotal = prevQuestions.total || 0;
+        const delta = newValue ? (qTotal > 0 ? qTotal : 1) : -(qTotal > 0 ? qTotal : 1);
+
+        setDailyHistory(prevHist => {
+          const prevEntry = prevHist[today];
+          let count = 0;
+          if (typeof prevEntry === 'number' && !isNaN(prevEntry)) count = prevEntry;
+          else if (prevEntry && typeof prevEntry === 'object') count = Number(prevEntry.questions || prevEntry.questions_count || 0) || 0;
+          else if (typeof prevEntry === 'string') count = parseInt(prevEntry, 10) || 0;
+
+          const newCount = Math.max(0, count + delta);
+          if (prevEntry && typeof prevEntry === 'object') {
+            return { ...prevHist, [today]: { ...prevEntry, questions: newCount } };
+          }
+          return { ...prevHist, [today]: { questions: newCount, time: 0, xp: 0 } };
+        });
+
+        return {
+          ...prev,
+          [topicId]: {
+            ...currentTopic,
+            questions: {
+              ...prevQuestions,
+              completed: newValue,
+              total: prevQuestions.total || (newValue ? 1 : 0),
+              completed_date: today,
+              last_completed_at: new Date().toISOString()
+            },
+            questions_history: {
+              ...(currentTopic.questions_history || {}),
+              [today]: newValue ? (prevQuestions.total || 1) : 0
+            },
+            updated_at: new Date().toISOString()
+          }
+        };
       }
 
       return {
@@ -221,29 +267,51 @@ function App() {
         }
       };
     });
-  }, [setProgress]);
+  }, [setProgress, setDailyHistory]);
 
   const updateQuestionMetrics = useCallback((topicId, field, value) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = parseInt(value, 10) || 0;
+    const today = new Date().toLocaleDateString('en-CA');
 
     if (field === 'total') {
       const currentTotal = progress[topicId]?.questions?.total || 0;
       const delta = numValue - currentTotal;
 
       if (delta !== 0) {
-        const today = new Date().toLocaleDateString('en-CA');
-        setDailyHistory(prev => ({
-          ...prev,
-          [today]: Math.max(0, (prev[today] || 0) + delta)
-        }));
+        setDailyHistory(prev => {
+          const prevEntry = prev[today];
+          let currentQuestions = 0;
+          if (typeof prevEntry === 'number' && !isNaN(prevEntry)) currentQuestions = prevEntry;
+          else if (prevEntry && typeof prevEntry === 'object') currentQuestions = Number(prevEntry.questions || prevEntry.questions_count || 0) || 0;
+          else if (typeof prevEntry === 'string') currentQuestions = parseInt(prevEntry, 10) || 0;
+
+          const newQuestions = Math.max(0, currentQuestions + delta);
+          if (prevEntry && typeof prevEntry === 'object') {
+            return {
+              ...prev,
+              [today]: {
+                ...prevEntry,
+                questions: newQuestions
+              }
+            };
+          }
+          return {
+            ...prev,
+            [today]: {
+              questions: newQuestions,
+              time: 0,
+              xp: 0
+            }
+          };
+        });
 
         addXp(delta * 10);
         checkStreak();
 
-        if (delta !== 0) {
+        if (delta > 0) {
           let subjectId = 'unknown';
           for (const s of SUBJECTS) {
-            if (s.topics.find(t => t.id === topicId)) {
+            if (s.topics?.find(t => t.id === topicId)) {
               subjectId = s.id;
               break;
             }
@@ -255,7 +323,7 @@ function App() {
 
     setProgress(prev => {
       const currentTopic = prev[topicId] || {};
-      const currentQuestions = currentTopic.questions || {};
+      const currentQuestions = typeof currentTopic.questions === 'object' ? currentTopic.questions : {};
 
       return {
         ...prev,
@@ -264,7 +332,13 @@ function App() {
           questions: {
             ...currentQuestions,
             [field]: numValue,
-            completed: field === 'total' && numValue > 0 ? true : currentQuestions.completed
+            completed: field === 'total' ? numValue > 0 : currentQuestions.completed,
+            completed_date: today,
+            last_completed_at: new Date().toISOString()
+          },
+          questions_history: {
+            ...(currentTopic.questions_history || {}),
+            [today]: field === 'total' ? numValue : (currentTopic.questions_history?.[today] || numValue)
           },
           updated_at: new Date().toISOString()
         }
