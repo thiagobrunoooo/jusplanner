@@ -422,8 +422,8 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
             animate="visible"
             variants={containerVariants}
         >
-            {/* SECTION 1: PROGRESS OVERVIEW - Premium Cards */}
-            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={containerVariants}>
+            {/* SECTION 1: PROGRESS OVERVIEW - 3 Cards lado a lado */}
+            <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6" variants={containerVariants}>
                 {/* Card 1: Dia Atual */}
                 <motion.div
                     variants={cardVariants}
@@ -433,7 +433,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition: { type: "spring", stiffness: 400, damping: 17 }
                     }}
                     whileTap={{ scale: 0.98 }}
-                    className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 dark:from-blue-600 dark:via-indigo-600 dark:to-purple-700 rounded-3xl p-[2px] shadow-xl shadow-blue-500/20 dark:shadow-indigo-500/10 group cursor-pointer overflow-hidden"
+                    className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 dark:from-blue-600 dark:via-indigo-600 dark:to-purple-700 rounded-3xl p-[2px] shadow-xl shadow-blue-500/20 dark:shadow-indigo-500/10 group cursor-pointer overflow-hidden flex flex-col"
                 >
                     <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -442,54 +442,55 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition={{ duration: 0.8, ease: "easeInOut" }}
                     />
 
-                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-5 lg:p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
                         <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-2.5 mb-2.5">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-xl text-blue-600 dark:text-blue-400 shadow-sm"
+                                    className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-xl text-blue-600 dark:text-blue-400 shadow-sm"
                                     whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
                                     transition={{ duration: 0.5 }}
                                 >
-                                    <Calendar size={22} />
+                                    <Calendar size={20} />
                                 </motion.div>
-                                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Dia Atual</h3>
+                                <h3 className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider">Dia Atual</h3>
                             </div>
-                            <div className="flex items-baseline gap-2">
+                            <div className="flex items-baseline gap-1.5 mt-1">
                                 <motion.span
-                                    className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight"
+                                    className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight"
                                     initial={{ opacity: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.2 }}
                                 >
                                     {stats.currentDay}
                                 </motion.span>
-                                <span className="text-2xl text-slate-400 font-medium">/{stats.totalDays}</span>
-                            </div>
-                            <div className="mt-4 flex items-center gap-3">
-                                <div className="h-2.5 w-36 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
-                                    <motion.div
-                                        className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${Math.round((stats.currentDay / stats.totalDays) * 100)}%` }}
-                                        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.3 }}
-                                    />
-                                </div>
-                                <motion.span
-                                    className="text-sm font-bold text-blue-600 dark:text-blue-400"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.5 }}
-                                >
-                                    {Math.round((stats.currentDay / stats.totalDays) * 100)}%
-                                </motion.span>
+                                <span className="text-xl text-slate-400 font-medium">/{stats.totalDays}</span>
                             </div>
                         </div>
 
-                        <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
-                            <Calendar size={160} strokeWidth={1} />
+                        <div className="mt-4 pt-2 border-t border-slate-100/80 dark:border-slate-800/60 flex items-center justify-between relative z-10">
+                            <div className="h-2 flex-1 max-w-[120px] bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner mr-2.5">
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.round((stats.currentDay / stats.totalDays) * 100)}%` }}
+                                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.3 }}
+                                />
+                            </div>
+                            <motion.span
+                                className="text-xs font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.5 }}
+                            >
+                                {Math.round((stats.currentDay / stats.totalDays) * 100)}% concluído
+                            </motion.span>
                         </div>
 
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/20 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -right-6 -bottom-6 opacity-[0.06] dark:opacity-[0.12] pointer-events-none">
+                            <Calendar size={120} strokeWidth={1} />
+                        </div>
+
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-blue-500/20 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
                     </div>
                 </motion.div>
 
@@ -502,7 +503,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition: { type: "spring", stiffness: 400, damping: 17 }
                     }}
                     whileTap={{ scale: 0.98 }}
-                    className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 dark:from-emerald-600 dark:via-teal-600 dark:to-cyan-700 rounded-3xl p-[2px] shadow-xl shadow-emerald-500/20 dark:shadow-teal-500/10 group cursor-pointer overflow-hidden"
+                    className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 dark:from-emerald-600 dark:via-teal-600 dark:to-cyan-700 rounded-3xl p-[2px] shadow-xl shadow-emerald-500/20 dark:shadow-teal-500/10 group cursor-pointer overflow-hidden flex flex-col"
                 >
                     <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -511,54 +512,55 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition={{ duration: 0.8, ease: "easeInOut" }}
                     />
 
-                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex items-center justify-between relative overflow-hidden backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-5 lg:p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
                         <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-2.5 mb-2.5">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-xl text-emerald-600 dark:text-emerald-400 shadow-sm"
+                                    className="p-2 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/50 dark:to-teal-900/50 rounded-xl text-emerald-600 dark:text-emerald-400 shadow-sm"
                                     whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
                                     transition={{ duration: 0.5 }}
                                 >
-                                    <BookOpen size={22} />
+                                    <BookOpen size={20} />
                                 </motion.div>
-                                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Tópicos Estudados</h3>
+                                <h3 className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider">Tópicos Estudados</h3>
                             </div>
-                            <div className="flex items-baseline gap-2">
+                            <div className="flex items-baseline gap-1.5 mt-1">
                                 <motion.span
-                                    className="text-6xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent tracking-tight"
+                                    className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent tracking-tight"
                                     initial={{ opacity: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.3 }}
                                 >
                                     {stats.topicsStudied}
                                 </motion.span>
-                                <span className="text-2xl text-slate-400 font-medium">/{stats.totalTopics}</span>
-                            </div>
-                            <div className="mt-4 flex items-center gap-3">
-                                <div className="h-2.5 w-36 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
-                                    <motion.div
-                                        className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${stats.planProgress}%` }}
-                                        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
-                                    />
-                                </div>
-                                <motion.span
-                                    className="text-sm font-bold text-emerald-600 dark:text-emerald-400"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.6 }}
-                                >
-                                    {stats.planProgress}%
-                                </motion.span>
+                                <span className="text-xl text-slate-400 font-medium">/{stats.totalTopics}</span>
                             </div>
                         </div>
 
-                        <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
-                            <BookOpen size={160} strokeWidth={1} />
+                        <div className="mt-4 pt-2 border-t border-slate-100/80 dark:border-slate-800/60 flex items-center justify-between relative z-10">
+                            <div className="h-2 flex-1 max-w-[120px] bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner mr-2.5">
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${stats.planProgress}%` }}
+                                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
+                                />
+                            </div>
+                            <motion.span
+                                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.6 }}
+                            >
+                                {stats.planProgress}% da grade
+                            </motion.span>
                         </div>
 
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-emerald-500/20 dark:bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -right-6 -bottom-6 opacity-[0.06] dark:opacity-[0.12] pointer-events-none">
+                            <BookOpen size={120} strokeWidth={1} />
+                        </div>
+
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-emerald-500/20 dark:bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
                     </div>
                 </motion.div>
 
@@ -572,7 +574,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition: { type: "spring", stiffness: 400, damping: 17 }
                     }}
                     whileTap={{ scale: 0.98 }}
-                    className="relative bg-gradient-to-br from-amber-400 via-orange-500 to-indigo-600 dark:from-amber-600 dark:via-orange-600 dark:to-indigo-700 rounded-3xl p-[2px] shadow-xl shadow-orange-500/20 dark:shadow-orange-500/10 group cursor-pointer overflow-hidden"
+                    className="relative bg-gradient-to-br from-amber-400 via-orange-500 to-indigo-600 dark:from-amber-600 dark:via-orange-600 dark:to-indigo-700 rounded-3xl p-[2px] shadow-xl shadow-orange-500/20 dark:shadow-orange-500/10 group cursor-pointer overflow-hidden flex flex-col"
                 >
                     <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -581,10 +583,10 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                         transition={{ duration: 0.8, ease: "easeInOut" }}
                     />
 
-                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-5 lg:p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
                         <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2.5">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
                                     <motion.div
                                         className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 rounded-xl text-amber-600 dark:text-amber-400 shadow-sm"
                                         whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
@@ -592,10 +594,10 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                                     >
                                         <Sparkles size={20} />
                                     </motion.div>
-                                    <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider">Estudar Hoje</h3>
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider">Estudar Hoje</h3>
                                 </div>
 
-                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/70 px-2.5 py-1 rounded-lg border border-amber-300/80 dark:border-amber-700/60 shadow-xs flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/70 px-2 py-0.5 rounded-lg border border-amber-300/80 dark:border-amber-700/60 shadow-xs flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                                     <span>{stats.todayStudy.weekKey.replace('week', 'Sem. ')} • {stats.todayStudy.dayKey}</span>
                                 </span>
@@ -604,25 +606,25 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                             {/* Conteúdo resumido do dia de hoje */}
                             <div className="space-y-1.5 mt-2">
                                 {stats.todayStudy.isRest ? (
-                                    <div className="py-2">
-                                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                    <div className="py-1">
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                                             <span>☕ Dia de Descanso</span>
                                         </p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Recarregue as energias para o próximo ciclo</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">Recarregue as energias para o próximo ciclo</p>
                                     </div>
                                 ) : stats.todayStudy.isReview ? (
-                                    <div className="py-2">
-                                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                    <div className="py-1">
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                                             <span>🔄 Revisão e Questões</span>
                                         </p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Consolidação da memória e treino de fixação</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">Consolidação da memória e treino</p>
                                     </div>
                                 ) : stats.todayStudy.topics.length > 0 ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         {stats.todayStudy.topics.slice(0, 2).map((topic) => (
-                                            <div key={topic.id} className="flex items-center gap-2 min-w-0">
+                                            <div key={topic.id} className="flex items-center gap-1.5 min-w-0">
                                                 <span className={cn(
-                                                    "text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 truncate max-w-[110px]",
+                                                    "text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 truncate max-w-[95px]",
                                                     topic.subjectBgLight ? `${topic.subjectBgLight} ${topic.subjectColor} border-transparent` : "bg-slate-100 text-slate-600 border-slate-200"
                                                 )}>
                                                     {topic.subjectTitle}
@@ -633,24 +635,24 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                                             </div>
                                         ))}
                                         {stats.todayStudy.topics.length > 2 && (
-                                            <p className="text-[11px] font-bold text-slate-400">
+                                            <p className="text-[10px] font-bold text-slate-400">
                                                 + {stats.todayStudy.topics.length - 2} outros tópicos hoje
                                             </p>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="py-2">
-                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Plano Pronto para Estudar</p>
-                                        <p className="text-xs text-slate-400">Clique para abrir sua grade diária</p>
+                                    <div className="py-1">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Plano Pronto para Estudar</p>
+                                        <p className="text-[11px] text-slate-400">Clique para abrir sua grade diária</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Barra de Progresso e Ação */}
-                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between relative z-10">
-                            <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
-                                <div className="h-2 w-28 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
+                        <div className="mt-4 pt-2 border-t border-slate-100/80 dark:border-slate-800/60 flex items-center justify-between relative z-10">
+                            <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                <div className="h-2 flex-1 max-w-[100px] bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
                                     <motion.div
                                         className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
                                         initial={{ width: 0 }}
@@ -669,11 +671,11 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                             </span>
                         </div>
 
-                        <div className="absolute -right-8 -bottom-8 opacity-[0.07] dark:opacity-[0.15] pointer-events-none">
-                            <Sparkles size={160} strokeWidth={1} />
+                        <div className="absolute -right-6 -bottom-6 opacity-[0.06] dark:opacity-[0.12] pointer-events-none">
+                            <Sparkles size={120} strokeWidth={1} />
                         </div>
 
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-orange-500/20 dark:bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-orange-500/20 dark:bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
                     </div>
                 </motion.div>
             </motion.div>
