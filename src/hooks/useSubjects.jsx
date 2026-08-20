@@ -32,6 +32,103 @@ const transformToDB = (subject, userId) => ({
     updated_at: new Date().toISOString()
 });
 
+// Sanitiza tópicos para garantir que tópicos de Direito Processual não fiquem erroneamente dentro de Direito Material
+const sanitizeAndSeparateProcessualTopics = (subjectsList) => {
+    if (!Array.isArray(subjectsList) || subjectsList.length === 0) return { sanitizedList: subjectsList, hasChanges: false };
+
+    let hasChanges = false;
+    let list = subjectsList.map(s => ({ ...s, topics: [...(s.topics || [])] }));
+
+    // 1. DPC / Processo Civil vs Direito Civil
+    const civilIdx = list.findIndex(s => s.id === 'civil' || s.title?.toLowerCase() === 'direito civil');
+    let procCivilIdx = list.findIndex(s => s.id === 'proc_civil' || s.title?.toLowerCase().includes('processo civil') || s.title?.toLowerCase().includes('processual civil'));
+
+    if (civilIdx !== -1) {
+        const civilTopics = list[civilIdx].topics;
+        const procCivilKeywords = [
+            'processual civil', 'processo civil', 'cpc', 'petição inicial', 'peticao inicial',
+            'litisconsórcio', 'litisconsorcio', 'tutela provisória', 'tutela provisoria',
+            'cumprimento de sentença', 'cumprimento de sentenca', 'recursos cíveis', 'recursos civeis',
+            'teoria geral do processo', 'intervenção de terceiros', 'intervencao de terceiros',
+            'fase postulatória', 'fase postulatoria', 'saneamento', 'produção de provas', 'provas no cpc',
+            'jurisdição e ação', 'jurisdicao e acao', 'competência cível', 'competencia civel'
+        ];
+
+        const misplaced = civilTopics.filter(t => {
+            const title = (t.title || '').toLowerCase();
+            return procCivilKeywords.some(kw => title.includes(kw));
+        });
+
+        if (misplaced.length > 0) {
+            hasChanges = true;
+            list[civilIdx].topics = civilTopics.filter(t => !misplaced.some(m => m.id === t.id));
+
+            if (procCivilIdx === -1) {
+                const newProc = {
+                    id: 'proc_civil',
+                    title: 'Direito Processual Civil',
+                    color: 'text-indigo-600',
+                    bgColor: 'bg-indigo-600',
+                    bgLight: 'bg-indigo-50',
+                    icon: 'ScrollText',
+                    topics: [...misplaced],
+                    position: list.length
+                };
+                list.push(newProc);
+                procCivilIdx = list.length - 1;
+            } else {
+                const existingProcIds = new Set(list[procCivilIdx].topics.map(t => t.id));
+                const toAdd = misplaced.filter(t => !existingProcIds.has(t.id));
+                list[procCivilIdx].topics = [...list[procCivilIdx].topics, ...toAdd];
+            }
+        }
+    }
+
+    // 2. DPP / Processo Penal vs Direito Penal
+    const penalIdx = list.findIndex(s => s.id === 'penal' || s.title?.toLowerCase() === 'direito penal');
+    let procPenalIdx = list.findIndex(s => s.id === 'proc_penal' || s.title?.toLowerCase().includes('processo penal') || s.title?.toLowerCase().includes('processual penal'));
+
+    if (penalIdx !== -1) {
+        const penalTopics = list[penalIdx].topics;
+        const procPenalKeywords = [
+            'processual penal', 'processo penal', 'cpp', 'inquérito policial', 'inquerito policial',
+            'ação penal', 'acao penal', 'prisão preventiva', 'prisao preventiva', 'liberdade provisória',
+            'competência penal', 'competencia penal', 'provas no cpp', 'tribunal do júri', 'tribunal do juri',
+            'recursos penais', 'recurso em sentido estrito'
+        ];
+
+        const misplaced = penalTopics.filter(t => {
+            const title = (t.title || '').toLowerCase();
+            return procPenalKeywords.some(kw => title.includes(kw));
+        });
+
+        if (misplaced.length > 0) {
+            hasChanges = true;
+            list[penalIdx].topics = penalTopics.filter(t => !misplaced.some(m => m.id === t.id));
+
+            if (procPenalIdx === -1) {
+                const newProc = {
+                    id: 'proc_penal',
+                    title: 'Direito Processual Penal',
+                    color: 'text-cyan-600',
+                    bgColor: 'bg-cyan-600',
+                    bgLight: 'bg-cyan-50',
+                    icon: 'Shield',
+                    topics: [...misplaced],
+                    position: list.length
+                };
+                list.push(newProc);
+            } else {
+                const existingProcIds = new Set(list[procPenalIdx].topics.map(t => t.id));
+                const toAdd = misplaced.filter(t => !existingProcIds.has(t.id));
+                list[procPenalIdx].topics = [...list[procPenalIdx].topics, ...toAdd];
+            }
+        }
+    }
+
+    return { sanitizedList: list, hasChanges };
+};
+
 export function SubjectsProvider({ children }) {
     const { user } = useAuth();
     const [subjects, setSubjects] = useState(DEFAULT_SUBJECTS);
@@ -41,7 +138,8 @@ export function SubjectsProvider({ children }) {
     // Carrega matérias do usuário ou usa padrão
     const loadSubjects = useCallback(async () => {
         if (!user) {
-            setSubjects(DEFAULT_SUBJECTS);
+            const { sanitizedList } = sanitizeAndSeparateProcessualTopics(DEFAULT_SUBJECTS);
+            setSubjects(sanitizedList);
             setIsCustomized(false);
             setLoading(false);
             return;
@@ -57,16 +155,32 @@ export function SubjectsProvider({ children }) {
             if (error) throw error;
 
             if (data && data.length > 0) {
-                setSubjects(data.map(transformFromDB));
+                const rawList = data.map(transformFromDB);
+                const { sanitizedList, hasChanges } = sanitizeAndSeparateProcessualTopics(rawList);
+                setSubjects(sanitizedList);
                 setIsCustomized(true);
+
+                // Se houver tópicos mal posicionados salvos no DB, atualiza de forma assíncrona
+                if (hasChanges) {
+                    try {
+                        const toUpsert = sanitizedList.map((s, idx) =>
+                            transformToDB({ ...s, position: idx }, user.id)
+                        );
+                        await supabase.from('user_subjects').upsert(toUpsert, { onConflict: 'user_id, subject_id' });
+                    } catch (syncErr) {
+                        console.warn('Auto-heal sync notice:', syncErr);
+                    }
+                }
             } else {
                 // Usuário ainda não customizou - usa padrão
-                setSubjects(DEFAULT_SUBJECTS);
+                const { sanitizedList } = sanitizeAndSeparateProcessualTopics(DEFAULT_SUBJECTS);
+                setSubjects(sanitizedList);
                 setIsCustomized(false);
             }
         } catch (err) {
             console.error('Failed to load subjects:', err);
-            setSubjects(DEFAULT_SUBJECTS);
+            const { sanitizedList } = sanitizeAndSeparateProcessualTopics(DEFAULT_SUBJECTS);
+            setSubjects(sanitizedList);
         } finally {
             setLoading(false);
         }

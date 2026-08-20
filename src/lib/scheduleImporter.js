@@ -28,29 +28,200 @@ const SUBJECT_COLORS = [
 const ICONS = ['BookOpen', 'Scale', 'Landmark', 'Gavel', 'ScrollText', 'Briefcase', 'Shield', 'Globe', 'CheckCircle', 'FileText'];
 
 // Dicionário canônico de ramos jurídicos e matérias
-const KNOWN_BRANCHES = [
-    { canonical: 'Direito Constitucional', aliases: ['direito constitucional', 'dir constitucional', 'dir. constitucional', 'constitucional', 'const', 'const.'] },
-    { canonical: 'Direito Administrativo', aliases: ['direito administrativo', 'dir administrativo', 'dir. administrativo', 'dir adm', 'dir. adm', 'administrativo', 'adm', 'adm.'] },
-    { canonical: 'Direito Penal', aliases: ['direito penal', 'dir penal', 'dir. penal', 'penal', 'cp'] },
-    { canonical: 'Direito Processual Penal', aliases: ['direito processual penal', 'dir processual penal', 'dir. processual penal', 'processual penal', 'proc penal', 'proc. penal', 'processo penal', 'dpp', 'cpp'] },
-    { canonical: 'Direito Civil', aliases: ['direito civil', 'dir civil', 'dir. civil', 'civil', 'cc'] },
-    { canonical: 'Direito Processual Civil', aliases: ['direito processual civil', 'dir processual civil', 'dir. processual civil', 'processual civil', 'proc civil', 'proc. civil', 'processo civil', 'dpc', 'cpc'] },
-    { canonical: 'Direito do Trabalho', aliases: ['direito do trabalho', 'dir do trabalho', 'dir. do trabalho', 'trabalho', 'clt', 'trabalhista', 'direito trabalhista'] },
-    { canonical: 'Direito Processual do Trabalho', aliases: ['direito processual do trabalho', 'dir proc trabalho', 'dir. proc. trabalho', 'processo do trabalho', 'proc trabalho', 'proc. trabalho', 'dpt'] },
-    { canonical: 'Direito Tributário', aliases: ['direito tributario', 'dir tributario', 'dir. tributario', 'direito tributário', 'dir. tributário', 'tributario', 'tributário', 'ctn'] },
-    { canonical: 'Direito Empresarial', aliases: ['direito empresarial', 'dir empresarial', 'dir. empresarial', 'empresarial', 'comercial', 'direito comercial'] },
-    { canonical: 'Direito Eleitoral', aliases: ['direito eleitoral', 'dir eleitoral', 'dir. eleitoral', 'eleitoral'] },
-    { canonical: 'Direito Ambiental', aliases: ['direito ambiental', 'dir ambiental', 'dir. ambiental', 'ambiental'] },
-    { canonical: 'Direito do Consumidor', aliases: ['direito do consumidor', 'dir do consumidor', 'dir. consumidor', 'consumidor', 'cdc'] },
-    { canonical: 'Direitos Humanos', aliases: ['direitos humanos', 'dir humanos', 'dir. humanos', 'humanos', 'dh'] },
-    { canonical: 'Direito Previdenciário', aliases: ['direito previdenciario', 'dir previdenciario', 'dir. previdenciario', 'direito previdenciário', 'previdenciario', 'previdenciário'] },
-    { canonical: 'Língua Portuguesa', aliases: ['lingua portuguesa', 'língua portuguesa', 'portugues', 'português', 'gramatica', 'gramática'] },
-    { canonical: 'Redação Oficial', aliases: ['redacao oficial', 'redação oficial', 'manual da presidencia', 'manual de redacao'] },
-    { canonical: 'Legislação Especial', aliases: ['legislacao especial', 'legislação especial', 'leis especiais', 'leis penais especiais', 'legislacao institucional', 'leis extravagantes', 'legislacao estadual', 'legislação estadual', 'legislacao local'] },
-    { canonical: 'Raciocínio Lógico', aliases: ['raciocinio logico', 'raciocínio lógico', 'raciocinio logico matematico', 'rlm', 'matematica', 'matemática'] },
-    { canonical: 'Informática', aliases: ['informatica', 'informática', 'tecnologia da informacao', 'ti'] },
-    { canonical: 'Ética e Estatuto OAB', aliases: ['etica', 'ética', 'estatuto da oab', 'deontologia', 'codigo de etica', 'código de ética'] },
-    { canonical: 'Revisão e Questões', aliases: ['revisao e questoes', 'revisão e questões', 'revisoes', 'revisões', 'questoes', 'questões', 'simulados', 'treino'] },
+// NOTA CRUCIAL: Matérias Processuais DEVEM vir ANTES das matérias de Direito Material para evitar falso-positivo em prefixos/substrings.
+export const KNOWN_BRANCHES = [
+    {
+        canonical: 'Direito Processual Civil',
+        aliases: [
+            'direito processual civil',
+            'dir processual civil',
+            'dir. processual civil',
+            'processual civil',
+            'processo civil',
+            'direito processo civil',
+            'dir processo civil',
+            'dir. processo civil',
+            'proc civil',
+            'proc. civil',
+            'proc.civil',
+            'dpc',
+            'cpc',
+            'codigo de processo civil',
+            'código de processo civil'
+        ]
+    },
+    {
+        canonical: 'Direito Processual Penal',
+        aliases: [
+            'direito processual penal',
+            'dir processual penal',
+            'dir. processual penal',
+            'processual penal',
+            'processo penal',
+            'direito processo penal',
+            'dir processo penal',
+            'dir. processo penal',
+            'proc penal',
+            'proc. penal',
+            'proc.penal',
+            'dpp',
+            'cpp',
+            'codigo de processo penal',
+            'código de processo penal'
+        ]
+    },
+    {
+        canonical: 'Direito Processual do Trabalho',
+        aliases: [
+            'direito processual do trabalho',
+            'dir processual do trabalho',
+            'dir. processual do trabalho',
+            'processo do trabalho',
+            'processual do trabalho',
+            'proc do trabalho',
+            'proc. do trabalho',
+            'proc trabalho',
+            'proc. trabalho',
+            'dpt',
+            'processo trabalhista',
+            'processual trabalhista'
+        ]
+    },
+    {
+        canonical: 'Direito Civil',
+        aliases: [
+            'direito civil',
+            'dir civil',
+            'dir. civil',
+            'civil',
+            'cc',
+            'codigo civil',
+            'código civil'
+        ]
+    },
+    {
+        canonical: 'Direito Penal',
+        aliases: [
+            'direito penal',
+            'dir penal',
+            'dir. penal',
+            'penal',
+            'cp',
+            'codigo penal',
+            'código penal'
+        ]
+    },
+    {
+        canonical: 'Direito do Trabalho',
+        aliases: [
+            'direito do trabalho',
+            'dir do trabalho',
+            'dir. do trabalho',
+            'trabalho',
+            'clt',
+            'trabalhista',
+            'direito trabalhista'
+        ]
+    },
+    {
+        canonical: 'Direito Constitucional',
+        aliases: [
+            'direito constitucional',
+            'dir constitucional',
+            'dir. constitucional',
+            'constitucional',
+            'const',
+            'const.',
+            'cf',
+            'cf/88',
+            'cf88'
+        ]
+    },
+    {
+        canonical: 'Direito Administrativo',
+        aliases: [
+            'direito administrativo',
+            'dir administrativo',
+            'dir. administrativo',
+            'dir adm',
+            'dir. adm',
+            'administrativo',
+            'adm',
+            'adm.'
+        ]
+    },
+    {
+        canonical: 'Direito Tributário',
+        aliases: [
+            'direito tributario',
+            'dir tributario',
+            'dir. tributario',
+            'direito tributário',
+            'dir. tributário',
+            'tributario',
+            'tributário',
+            'ctn'
+        ]
+    },
+    {
+        canonical: 'Direito Empresarial',
+        aliases: [
+            'direito empresarial',
+            'dir empresarial',
+            'dir. empresarial',
+            'empresarial',
+            'comercial',
+            'direito comercial'
+        ]
+    },
+    {
+        canonical: 'Direito Eleitoral',
+        aliases: ['direito eleitoral', 'dir eleitoral', 'dir. eleitoral', 'eleitoral']
+    },
+    {
+        canonical: 'Direito Ambiental',
+        aliases: ['direito ambiental', 'dir ambiental', 'dir. ambiental', 'ambiental']
+    },
+    {
+        canonical: 'Direito do Consumidor',
+        aliases: ['direito do consumidor', 'dir do consumidor', 'dir. consumidor', 'consumidor', 'cdc']
+    },
+    {
+        canonical: 'Direitos Humanos',
+        aliases: ['direitos humanos', 'dir humanos', 'dir. humanos', 'humanos', 'dh']
+    },
+    {
+        canonical: 'Direito Previdenciário',
+        aliases: ['direito previdenciario', 'dir previdenciario', 'dir. previdenciario', 'direito previdenciário', 'previdenciario', 'previdenciário']
+    },
+    {
+        canonical: 'Redação Oficial',
+        aliases: ['redacao oficial', 'redação oficial', 'manual da presidencia', 'manual de redacao']
+    },
+    {
+        canonical: 'Língua Portuguesa',
+        aliases: ['lingua portuguesa', 'língua portuguesa', 'portugues', 'português', 'gramatica', 'gramática']
+    },
+    {
+        canonical: 'Legislação Especial',
+        aliases: ['legislacao especial', 'legislação especial', 'leis especiais', 'leis penais especiais', 'legislacao institucional', 'leis extravagantes', 'legislacao estadual', 'legislação estadual', 'legislacao local']
+    },
+    {
+        canonical: 'Raciocínio Lógico',
+        aliases: ['raciocinio logico', 'raciocínio lógico', 'raciocinio logico matematico', 'rlm', 'matematica', 'matemática']
+    },
+    {
+        canonical: 'Informática',
+        aliases: ['informatica', 'informática', 'tecnologia da informacao', 'ti']
+    },
+    {
+        canonical: 'Ética e Estatuto OAB',
+        aliases: ['etica', 'ética', 'estatuto da oab', 'deontologia', 'codigo de etica', 'código de ética']
+    },
+    {
+        canonical: 'Revisão e Questões',
+        aliases: ['revisao e questoes', 'revisão e questões', 'revisoes', 'revisões', 'questoes', 'questões', 'simulados', 'treino']
+    }
 ];
 
 // Normaliza string (remove acentos, minúsculas, pontuação e espaços extras)
@@ -91,46 +262,93 @@ function romanToInt(roman) {
 }
 
 // Resolve o nome canônico de uma matéria
-function resolveCanonicalSubject(rawSubject, existingSubjects = []) {
+export function resolveCanonicalSubject(rawSubject, existingSubjects = []) {
     if (!rawSubject) return 'Geral';
     const norm = normalizeString(rawSubject);
+    if (!norm) return 'Geral';
 
-    // 1. Procura nas matérias já cadastradas do usuário
-    for (const subj of existingSubjects) {
-        const normSubj = normalizeString(subj.title);
-        if (normSubj === norm || norm.includes(normSubj) || normSubj.includes(norm)) {
-            return subj.title;
-        }
-    }
+    const isTargetProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(norm);
 
-    // 2. Procura nos ramos canônicos
+    // 1. Procura primeiro nos ramos canônicos (específicos processuais vêm primeiro)
     for (const b of KNOWN_BRANCHES) {
         for (const alias of b.aliases) {
             const normAlias = normalizeString(alias);
-            if (norm === normAlias || norm.startsWith(normAlias) || normAlias.startsWith(norm)) {
-                return b.canonical;
+            const isAliasProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(normAlias);
+            if (isTargetProc !== isAliasProc) continue;
+
+            if (norm === normAlias || norm.startsWith(normAlias) || (normAlias.length > 4 && norm.includes(normAlias))) {
+                const existing = findMatchingSubject(b.canonical, existingSubjects);
+                return existing ? existing.title : b.canonical;
             }
         }
     }
 
+    // 2. Procura nas matérias já cadastradas do usuário
+    const matched = findMatchingSubject(rawSubject, existingSubjects);
+    if (matched) return matched.title;
+
     return rawSubject.trim();
 }
 
-// Helper: Tenta casar uma matéria com matérias existentes
+// Helper: Tenta casar uma matéria com matérias existentes com distinção estrita entre Material e Processual
 export function findMatchingSubject(subjectName, existingSubjects = []) {
-    if (!subjectName) return null;
+    if (!subjectName || !Array.isArray(existingSubjects) || existingSubjects.length === 0) return null;
     const normalizedTarget = normalizeString(subjectName);
+    if (!normalizedTarget) return null;
 
+    const isTargetProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(normalizedTarget);
+
+    // 1. Exact match de título
     for (const subj of existingSubjects) {
         const normTitle = normalizeString(subj.title);
-        const normWithoutDireito = normTitle.replace(/^direito\s+/, '');
-        const targetWithoutDireito = normalizedTarget.replace(/^direito\s+/, '');
-
-        if (normTitle === normalizedTarget || normWithoutDireito === targetWithoutDireito) {
+        if (normTitle === normalizedTarget) {
             return subj;
         }
+    }
 
-        if (normalizedTarget.length > 3 && (normTitle.includes(normalizedTarget) || normalizedTarget.includes(normWithoutDireito))) {
+    // 2. Exact match de ID canônico ou apelido conhecido
+    const targetBranch = KNOWN_BRANCHES.find(b =>
+        normalizeString(b.canonical) === normalizedTarget ||
+        b.aliases.some(a => normalizeString(a) === normalizedTarget)
+    );
+
+    if (targetBranch) {
+        for (const subj of existingSubjects) {
+            const normTitle = normalizeString(subj.title);
+            const isSubjProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(normTitle);
+            if (isTargetProc !== isSubjProc) continue;
+
+            const subjMatchesCanonical = normalizeString(targetBranch.canonical) === normTitle ||
+                targetBranch.aliases.some(a => normalizeString(a) === normTitle);
+
+            if (subjMatchesCanonical) {
+                return subj;
+            }
+        }
+    }
+
+    // 3. Match sem prefixo "direito" (ex: "processual civil" === "processual civil" ou "processo civil")
+    const targetWithoutDireito = normalizedTarget.replace(/^direito\s+/, '').trim();
+    for (const subj of existingSubjects) {
+        const normTitle = normalizeString(subj.title);
+        const isSubjProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(normTitle);
+        if (isTargetProc !== isSubjProc) continue;
+
+        const normWithoutDireito = normTitle.replace(/^direito\s+/, '').trim();
+        if (normWithoutDireito === targetWithoutDireito) {
+            return subj;
+        }
+    }
+
+    // 4. Substring Match com guarda obrigatória de ramo processual
+    for (const subj of existingSubjects) {
+        const normTitle = normalizeString(subj.title);
+        const isSubjProc = /\b(processual|processo|proc|dpc|cpc|dpp|cpp|dpt)\b/.test(normTitle);
+        // NUNCA casar matéria processual com matéria de direito material (ex: Processo Civil nunca pode casar com Direito Civil)
+        if (isTargetProc !== isSubjProc) continue;
+
+        const normWithoutDireito = normTitle.replace(/^direito\s+/, '').trim();
+        if (normalizedTarget.length > 3 && (normTitle.includes(normalizedTarget) || normalizedTarget.includes(normWithoutDireito) || normWithoutDireito.includes(targetWithoutDireito))) {
             return subj;
         }
     }

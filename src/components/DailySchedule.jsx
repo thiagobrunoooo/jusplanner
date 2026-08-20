@@ -819,7 +819,32 @@ const DailySchedule = ({ progress = {}, toggleCheck, updateQuestionMetrics, note
                 {!isRestDay && !isReviewDay && currentDayTopics.map((topic) => {
                     const isExpanded = expandedCard === topic.id;
                     const topicProgress = progress[topic.id] || {};
-                    const parentSubject = subjects.find(s => s.topics.find(t => t.id === topic.id));
+                    
+                    // Resolução precisa do ramo jurídico pai
+                    let parentSubject = subjects.find(s => s.topics?.some(t => t.id === topic.id));
+                    if (parentSubject && (parentSubject.id === 'civil' || parentSubject.title?.toLowerCase() === 'direito civil')) {
+                        const normTopicTitle = (topic.title || '').toLowerCase();
+                        const isProcCivil = (
+                            normTopicTitle.includes('processual civil') ||
+                            normTopicTitle.includes('processo civil') ||
+                            normTopicTitle.includes('cpc') ||
+                            normTopicTitle.includes('petição inicial') ||
+                            normTopicTitle.includes('peticao inicial') ||
+                            normTopicTitle.includes('litisconsórcio') ||
+                            normTopicTitle.includes('litisconsorcio') ||
+                            normTopicTitle.includes('tutela provisória') ||
+                            normTopicTitle.includes('tutela provisoria') ||
+                            normTopicTitle.includes('cumprimento de sentença') ||
+                            normTopicTitle.includes('cumprimento de sentenca') ||
+                            normTopicTitle.includes('recursos cíveis') ||
+                            normTopicTitle.includes('recursos civeis')
+                        );
+                        if (isProcCivil) {
+                            const procCivilSubj = subjects.find(s => s.id === 'proc_civil' || s.title?.toLowerCase().includes('processo civil') || s.title?.toLowerCase().includes('processual civil'));
+                            if (procCivilSubj) parentSubject = procCivilSubj;
+                        }
+                    }
+
                     const SubjectIcon = parentSubject ? (ICON_MAP[parentSubject.icon] || BookOpen) : BookOpen;
 
                     return (
