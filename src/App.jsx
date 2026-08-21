@@ -369,14 +369,23 @@ function App() {
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="justify-between gap-6">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-            <div className={cn("flex items-center py-3.5 transition-all duration-200", open ? "gap-2.5 px-2" : "justify-center px-0")}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-xs">
+            <motion.button
+              onClick={() => setOpen(!open)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className={cn(
+                "flex items-center py-2 transition-all duration-200 group rounded-xl hover:bg-slate-200/50 dark:hover:bg-slate-800/50 cursor-pointer text-left",
+                open ? "gap-2.5 px-2 w-full" : "justify-center px-0 w-11 h-11 mx-auto"
+              )}
+              title={open ? "Recolher menu lateral" : "Expandir menu lateral"}
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-xs group-hover:scale-105 transition-transform">
                 <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <span className={cn("font-bold text-lg text-slate-900 dark:text-white tracking-tight transition-opacity duration-200", open ? "opacity-100" : "opacity-0 hidden")}>
+              <span className={cn("font-bold text-lg text-slate-900 dark:text-white tracking-tight transition-opacity duration-200 select-none", open ? "opacity-100" : "opacity-0 hidden")}>
                 JusPlanner
               </span>
-            </div>
+            </motion.button>
 
             <div className="mt-5 flex flex-col gap-2.5">
               {menuItems.map((item) => (

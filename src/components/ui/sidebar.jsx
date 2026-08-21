@@ -81,22 +81,6 @@ export const DesktopSidebar = ({
             style={{ willChange: "width" }}
             {...props}
         >
-            {/* Botão de Toggle - Posicionado elegantemente no topo para não sobrepor ícones */}
-            <motion.button
-                onClick={toggleSidebar}
-                className="absolute -right-3.5 top-6 z-50 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-lg transition-all duration-200 group"
-                whileHover={{ scale: 1.12 }}
-                whileTap={{ scale: 0.92 }}
-                title={open ? "Recolher menu" : "Expandir menu"}
-            >
-                <motion.div
-                    animate={{ rotate: open ? 0 : 180 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                    <ChevronLeft size={15} className="text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors" />
-                </motion.div>
-            </motion.button>
-
             {/* Decorative gradient orb */}
             <div className="absolute top-20 -left-20 w-40 h-40 bg-blue-500/10 dark:bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-20 -right-10 w-32 h-32 bg-purple-500/10 dark:bg-purple-400/5 rounded-full blur-3xl pointer-events-none" />
