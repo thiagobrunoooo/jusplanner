@@ -1300,8 +1300,8 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Usa gemini-2.0-flash com fallback
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        // Usa gemini-flash-latest para velocidade, estabilidade e compatibilidade com o plano gratuito
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         const distributionInstruction = distributionMode === 'sequential'
             ? 'AGRUPE os tópicos matéria por matéria em ordem sequencial (finalize uma matéria antes de iniciar a próxima).'

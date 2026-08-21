@@ -10,7 +10,7 @@ let model = null;
 if (apiKey) {
     genAI = new GoogleGenerativeAI(apiKey);
     model = genAI.getGenerativeModel({
-        model: "gemini-2.5-pro",
+        model: "gemini-flash-latest",
         systemInstruction: {
             parts: [{
                 text: `Você é o JusIA, um assistente jurídico pessoal especializado em Direito Brasileiro.
@@ -35,7 +35,7 @@ export const sendMessageToGemini = async (message, history = []) => {
             // Try re-initializing if key was added later (e.g. hot reload)
             genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
             model = genAI.getGenerativeModel({
-                model: "gemini-2.5-pro",
+                model: "gemini-flash-latest",
                 systemInstruction: {
                     parts: [{
                         text: `Você é o JusIA, um assistente jurídico pessoal especializado em Direito Brasileiro.
