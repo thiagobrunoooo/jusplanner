@@ -173,7 +173,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             setEditalText('');
             setWeeksCount(8);
             setStudyDaysPerWeek(6);
-            setTopicsPerDay(2);
+            setStudyHoursPerDay(4);
             setRestDays([7]);
             setDistributionMode('interleaved');
             setParsedResult(null);
