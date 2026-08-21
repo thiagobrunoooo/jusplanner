@@ -1355,7 +1355,7 @@ REGRA MATEMÁTICA DE ESFORÇO DIÁRIO E DISTRIBUIÇÃO (MUITO IMPORTANTE):
 2. CALIBRAGEM DE TEMPO: Assuma que um tópico médio/padrão de concurso leva cerca de 1.5 a 2 horas para ser estudado.
 3. Isso significa que, se o aluno tem 4h por dia, o dia DEVE conter aproximadamente 2 a 3 tópicos. Se ele tem 6h, cerca de 3 a 4 tópicos, e assim por diante. Não coloque apenas 1 tópico por dia a menos que o aluno tenha selecionado apenas 2h/dia ou o tópico seja absurdamente gigantesco.
 4. Se o aluno escolheu um ciclo intercalado, e o dia comporta mais de 1 tópico, insira tópicos de MATÉRIAS DIFERENTES no mesmo dia para manter a mente ativa.
-5. Se um tópico for massivo (ex: Licitações, Controle de Constitucionalidade), FRACIONE-O no JSON em "Parte 1", "Parte 2", etc.
+5. FRACIONAMENTO OBRIGATÓRIO: Se um assunto for massivo e exigir mais horas do que o aluno tem por dia (ex: Licitações, Controle de Constitucionalidade), VOCÊ DEVE DIVIDI-LO na raiz! Crie objetos separados dentro da array de "topics" (ex: um tópico "Licitações - Parte 1" e outro tópico "Licitações - Parte 2"). NUNCA repita exatamente a mesma string de tópico no cronograma; se precisar repetir o estudo, crie "Partes" diferentes no array de tópicos.
 
 REGRAS DE CLASSIFICAÇÃO:
 1. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
