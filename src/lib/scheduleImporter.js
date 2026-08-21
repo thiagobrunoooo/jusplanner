@@ -1357,10 +1357,11 @@ REGRA MATEMÁTICA DE ESFORÇO DIÁRIO E DISTRIBUIÇÃO (MUITO IMPORTANTE):
 4. Se o aluno escolheu um ciclo intercalado, e o dia comporta mais de 1 tópico, insira tópicos de MATÉRIAS DIFERENTES no mesmo dia para manter a mente ativa.
 5. FRACIONAMENTO OBRIGATÓRIO: Se um assunto for massivo e exigir mais horas do que o aluno tem por dia (ex: Licitações, Controle de Constitucionalidade), VOCÊ DEVE DIVIDI-LO na raiz! Crie objetos separados dentro da array de "topics" (ex: um tópico "Licitações - Parte 1" e outro tópico "Licitações - Parte 2"). NUNCA repita exatamente a mesma string de tópico no cronograma; se precisar repetir o estudo, crie "Partes" diferentes no array de tópicos.
 
-REGRAS DE CLASSIFICAÇÃO:
-1. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
-2. IDENTIFICAÇÃO DE TÓPICOS: Os itens enumerados logo após representam os "Tópicos" (Topics).
-3. CORRESPONDÊNCIA EXATA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics". Se o nome divergir 1 letra, o sistema falhará.
+REGRAS DE CLASSIFICAÇÃO E FIDELIDADE:
+1. FIDELIDADE ABSOLUTA: NUNCA invente tópicos que não estão no texto do edital. Use apenas as palavras que estão lá. Não crie sub-ramificações doutrinárias que a banca não pediu. Se precisar dividir um tópico massivo, apenas anexe " - Parte 1", " - Parte 2" ao nome original.
+2. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
+3. IDENTIFICAÇÃO DE TÓPICOS: Os itens enumerados logo após representam os "Tópicos" (Topics).
+4. CORRESPONDÊNCIA EXATA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics". Se o nome divergir 1 letra, o sistema falhará.
 
 CONTEÚDO DO EDITAL:
 ${editalText.substring(0, 15000)}
