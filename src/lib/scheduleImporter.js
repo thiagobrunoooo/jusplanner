@@ -1350,12 +1350,12 @@ PARÂMETROS DO CRONOGRAMA:
 - Dias de descanso na semana: Índices [${restDays.join(', ')}] (1=Seg, 7=Dom)
 - Distribuição: ${distributionInstruction}
 
-REGRA MATEMÁTICA DE ESFORÇO DIÁRIO (MUITO IMPORTANTE):
-1. Você não deve usar um número fixo de tópicos por dia. Em vez disso, distribua o conteúdo baseando-se no PESO (complexidade) de cada assunto e nas horas disponíveis (${studyHoursPerDay}h/dia).
-2. Estime mentalmente o peso de cada tópico (Nível 1 = Curto, Nível 3 = Médio, Nível 5 = Denso/Complexo).
-3. Agrupe ou separe os tópicos de forma que a carga cognitiva de cada dia seja perfeitamente compatível com as ${studyHoursPerDay} horas informadas.
-4. Se um tópico for massivo (ex: Licitações, Teoria do Delito) e o aluno tem poucas horas, FRACIONE o tópico no JSON em "Parte 1", "Parte 2", etc., para não estourar a carga diária.
-5. Se o aluno tem muitas horas (ex: 6h ou 8h), você PODE e DEVE agrupar múltiplos tópicos no mesmo dia para fazer o edital render.
+REGRA MATEMÁTICA DE ESFORÇO DIÁRIO E DISTRIBUIÇÃO (MUITO IMPORTANTE):
+1. Você não deve usar um número fixo de tópicos por dia. Distribua o conteúdo baseando-se no PESO (complexidade) e nas horas disponíveis (${studyHoursPerDay}h/dia).
+2. CALIBRAGEM DE TEMPO: Assuma que um tópico médio/padrão de concurso leva cerca de 1.5 a 2 horas para ser estudado.
+3. Isso significa que, se o aluno tem 4h por dia, o dia DEVE conter aproximadamente 2 a 3 tópicos. Se ele tem 6h, cerca de 3 a 4 tópicos, e assim por diante. Não coloque apenas 1 tópico por dia a menos que o aluno tenha selecionado apenas 2h/dia ou o tópico seja absurdamente gigantesco.
+4. Se o aluno escolheu um ciclo intercalado, e o dia comporta mais de 1 tópico, insira tópicos de MATÉRIAS DIFERENTES no mesmo dia para manter a mente ativa.
+5. Se um tópico for massivo (ex: Licitações, Controle de Constitucionalidade), FRACIONE-O no JSON em "Parte 1", "Parte 2", etc.
 
 REGRAS DE CLASSIFICAÇÃO:
 1. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
