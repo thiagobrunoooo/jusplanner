@@ -66,35 +66,34 @@ export const DesktopSidebar = ({
     return (
         <motion.div
             className={cn(
-                "h-screen px-3 py-6 hidden md:flex md:flex-col glass-sidebar w-[280px] flex-shrink-0 relative",
+                "h-screen px-3 py-5 hidden md:flex md:flex-col glass-sidebar flex-shrink-0 relative border-r border-slate-200/80 dark:border-slate-800/80 transition-colors",
                 className
             )}
             animate={{
-                width: animate ? (open ? "280px" : "80px") : "280px",
+                width: animate ? (open ? "260px" : "72px") : "260px",
             }}
             transition={{
                 type: "spring",
-                stiffness: 300,
-                damping: 30,
+                stiffness: 350,
+                damping: 32,
                 mass: 0.8,
             }}
             style={{ willChange: "width" }}
             {...props}
         >
-            {/* Botão de Toggle - Centralizado verticalmente */}
+            {/* Botão de Toggle - Posicionado elegantemente no topo para não sobrepor ícones */}
             <motion.button
                 onClick={toggleSidebar}
-                className="absolute -right-3.5 top-1/2 z-50 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-lg transition-all duration-200 group"
-                style={{ transform: "translateY(-50%)" }}
-                whileHover={{ scale: 1.1 }}
+                className="absolute -right-3.5 top-6 z-50 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-md flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-lg transition-all duration-200 group"
+                whileHover={{ scale: 1.12 }}
                 whileTap={{ scale: 0.92 }}
-                title={open ? "Retrair sidebar" : "Expandir sidebar"}
+                title={open ? "Recolher menu" : "Expandir menu"}
             >
                 <motion.div
                     animate={{ rotate: open ? 0 : 180 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
-                    <ChevronLeft size={16} className="text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors" />
+                    <ChevronLeft size={15} className="text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors" />
                 </motion.div>
             </motion.button>
 
@@ -126,7 +125,7 @@ export const MobileSidebar = ({
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[99] md:hidden"
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99] md:hidden"
                             onClick={() => setOpen(false)}
                         />
                         {/* Sidebar */}
@@ -140,7 +139,7 @@ export const MobileSidebar = ({
                                 stiffness: 300,
                             }}
                             className={cn(
-                                "fixed h-full w-[85%] max-w-[320px] inset-y-0 left-0 glass-modal p-8 z-[100] flex flex-col justify-between md:hidden shadow-2xl",
+                                "fixed h-full w-[85%] max-w-[300px] inset-y-0 left-0 glass-modal p-6 z-[100] flex flex-col justify-between md:hidden shadow-2xl",
                                 className
                             )}
                         >
@@ -172,22 +171,31 @@ export const SidebarLink = ({
     return (
         <motion.button
             onClick={onClick}
-            whileHover={{ x: 4, backgroundColor: "rgba(0,0,0,0.02)" }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             className={cn(
-                "flex items-center justify-start gap-4 group/sidebar py-3 px-3 rounded-xl w-full text-left transition-all duration-200 relative overflow-hidden",
+                "flex items-center group/sidebar rounded-xl transition-all duration-200 relative",
+                open
+                    ? "justify-start gap-3.5 py-2.5 px-3 w-full text-left"
+                    : "justify-center w-11 h-11 mx-auto p-0",
                 active
-                    ? "bg-gradient-to-r from-blue-500/15 to-indigo-500/10 dark:from-blue-500/25 dark:to-indigo-500/15 text-blue-600 dark:text-blue-400 font-semibold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100",
+                    ? "bg-blue-500/15 dark:bg-blue-500/25 text-blue-600 dark:text-blue-400 font-semibold shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50",
                 className
             )}
+            title={!open ? link.label : undefined}
             {...props}
         >
             {/* Active indicator bar */}
             {active && (
                 <motion.div
                     layoutId="activeIndicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-r-full"
+                    className={cn(
+                        "absolute bg-gradient-to-b from-blue-500 to-indigo-500",
+                        open
+                            ? "left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full"
+                            : "left-0.5 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full"
+                    )}
                     initial={{ opacity: 0, scaleY: 0 }}
                     animate={{ opacity: 1, scaleY: 1 }}
                     transition={{ duration: 0.2 }}
@@ -195,54 +203,33 @@ export const SidebarLink = ({
             )}
 
             <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 z-20 relative",
-                active
-                    ? "bg-blue-500/20 dark:bg-blue-400/20 shadow-sm"
-                    : "group-hover/sidebar:bg-slate-200/50 dark:group-hover/sidebar:bg-slate-700/50"
+                "flex items-center justify-center flex-shrink-0 transition-colors duration-200",
+                open ? "w-6 h-6" : "w-full h-full"
             )}>
                 {React.cloneElement(link.icon, {
                     className: cn(
-                        "h-[18px] w-[18px] flex-shrink-0 transition-all duration-300",
+                        "h-5 w-5 flex-shrink-0 transition-colors duration-200",
                         active
                             ? "text-blue-600 dark:text-blue-400"
-                            : "text-slate-400 dark:text-slate-500 group-hover/sidebar:text-slate-700 dark:group-hover/sidebar:text-slate-300"
+                            : "text-slate-500 dark:text-slate-400 group-hover/sidebar:text-slate-800 dark:group-hover/sidebar:text-slate-200"
                     )
                 })}
             </div>
 
-            <motion.span
-                animate={{
-                    opacity: animate ? (open ? 1 : 0) : 1,
-                    x: animate ? (open ? 0 : -8) : 0,
-                    width: animate ? (open ? "auto" : 0) : "auto",
-                }}
-                transition={{
-                    opacity: {
-                        type: "tween",
-                        duration: open ? 0.25 : 0.15,
-                        delay: open ? 0.08 : 0,
-                        ease: "easeOut",
-                    },
-                    x: {
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 28,
-                        mass: 0.6,
-                    },
-                    width: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8,
-                    },
-                }}
-                className={cn(
-                    "text-sm font-medium whitespace-pre overflow-hidden z-20 relative",
-                    active ? "text-blue-700 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"
-                )}
-            >
-                {link.label}
-            </motion.span>
+            {open && (
+                <motion.span
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                        "text-sm font-medium whitespace-nowrap overflow-hidden z-20 relative",
+                        active ? "text-blue-700 dark:text-blue-400 font-semibold" : "text-slate-700 dark:text-slate-300"
+                    )}
+                >
+                    {link.label}
+                </motion.span>
+            )}
         </motion.button>
     );
 };

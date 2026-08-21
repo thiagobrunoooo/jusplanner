@@ -367,18 +367,18 @@ function App() {
   return (
     <div className="h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row w-full overflow-hidden">
       <Sidebar open={open} setOpen={setOpen}>
-        <SidebarBody className="justify-between gap-10">
+        <SidebarBody className="justify-between gap-6">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="flex items-center gap-2.5 px-2 py-5">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className={cn("flex items-center py-3.5 transition-all duration-200", open ? "gap-2.5 px-2" : "justify-center px-0")}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-xs">
                 <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <span className={cn("font-bold text-xl text-slate-900 dark:text-white tracking-tight transition-opacity duration-200", open ? "opacity-100" : "opacity-0 hidden")}>
+              <span className={cn("font-bold text-lg text-slate-900 dark:text-white tracking-tight transition-opacity duration-200", open ? "opacity-100" : "opacity-0 hidden")}>
                 JusPlanner
               </span>
             </div>
 
-            <div className="mt-6 flex flex-col gap-1.5">
+            <div className="mt-4 flex flex-col gap-1">
               {menuItems.map((item) => (
                 <SidebarLink
                   key={item.id}
@@ -400,19 +400,21 @@ function App() {
             </div>
           </div>
 
-          <div className="p-2">
-            <div className={cn("bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-xl p-4 text-white transition-all duration-300 shadow-lg", open ? "block" : "hidden")}>
+          <div className="p-1">
+            <div className={cn("bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-xl p-3.5 text-white transition-all duration-300 shadow-lg", open ? "block" : "hidden")}>
               <div className="flex items-center gap-2 mb-2">
-                <Trophy className="text-yellow-400" size={18} />
+                <Trophy className="text-yellow-400" size={16} />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nível {userStats.level}</span>
               </div>
-              <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden mb-2">
+              <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden mb-1.5">
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all" style={{ width: `${(userStats.xp % 1000) / 10}%` }}></div>
               </div>
-              <p className="text-xs text-slate-300">{userStats.xp % 1000} / 1000 XP</p>
+              <p className="text-[11px] text-slate-300">{userStats.xp % 1000} / 1000 XP</p>
             </div>
             <div className={cn("flex justify-center", open ? "hidden" : "block")}>
-              <Trophy className="text-yellow-400" size={24} />
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center shadow-xs" title={`Nível ${userStats.level} • ${userStats.xp % 1000} XP`}>
+                <Trophy className="text-yellow-400" size={18} />
+              </div>
             </div>
           </div>
         </SidebarBody>
