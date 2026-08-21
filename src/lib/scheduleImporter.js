@@ -958,8 +958,162 @@ function processJsonSchedule(jsonData, existingSubjects) {
 }
 
 // =========================================================================
-// 2. GERADOR DE CRONOGRAMA A PARTIR DE EDITAL (LOCAL E VIA IA)
+// 2. GERADOR DE CRONOGRAMA A PARTIR DE EDITAL (LOCAL INTELIGENTE E VIA IA)
 // =========================================================================
+
+/**
+ * Divide o texto do edital em seções por matéria e extrai seus tópicos com proteção a números de leis e artigos.
+ */
+function splitEditalIntoSubjectsAndTopics(text) {
+    if (!text || !text.trim()) return [];
+
+    const lines = text.split(/\r?\n/);
+    const sections = [];
+    let currentSubjectTitle = 'Conteúdo Programático';
+    let currentLines = [];
+
+    const subjectHeaderRegex = /^(?:(?:Item|Módulo|Bloco|Disciplina|Matéria)\s*\d*[\s:\-]*|\d+[\s.\-:]+)?\s*(DIREITO\s+[A-ZÁ-Ú\s]+|DIREITO\s+PROCESSUAL\s+[A-ZÁ-Ú\s]+|LEGISLAÇÃO\s+[A-ZÁ-Ú\s]+|LEGISLAÇÃO\s+ESPECIAL|LEGISLAÇÃO\s+INSTITUCIONAL|LEGISLAÇÃO\s+ESTADUAL|LÍNGUA\s+PORTUGUESA|PORTUGUÊS|INFORMÁTICA|RACIOCÍNIO\s+LÓGICO|ÉTICA\s+[A-ZÁ-Ú\s]*|NOÇÕES\s+DE\s+[A-ZÁ-Ú\s]+|CONHECIMENTOS\s+[A-ZÁ-Ú\s]+|DIREITOS\s+HUMANOS|CRIMINOLOGIA|MEDICINA\s+LEGAL|ADMINISTRAÇÃO\s+[A-ZÁ-Ú\s]*)[\s:]*$/i;
+
+    for (let rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        // Cabeçalho de matéria em linha isolada
+        const headerMatch = line.match(subjectHeaderRegex);
+        const isAllUpperHeader = line.toUpperCase() === line && line.length >= 4 && line.length <= 55 && !line.match(/^\d+\.\d+/) && !line.includes(';') && !line.includes('/');
+
+        if (headerMatch || isAllUpperHeader) {
+            if (currentLines.length > 0) {
+                sections.push({ subject: currentSubjectTitle, rawText: currentLines.join('\n') });
+                currentLines = [];
+            }
+            currentSubjectTitle = (headerMatch ? headerMatch[1] : line).replace(/[:\-#]/g, '').trim();
+            continue;
+        }
+
+        // Cabeçalho de matéria no início da linha seguido de dois-pontos (ex: "Legislação Especial: 1.Lei...")
+        const inlineHeaderMatch = line.match(/^((?:DIREITO\s+[A-ZÁ-Úa-zá-ú\s]+|LEGISLAÇÃO\s+[A-ZÁ-Úa-zá-ú\s]+|LÍNGUA\s+PORTUGUESA|PORTUGUÊS|INFORMÁTICA|RACIOCÍNIO\s+LÓGICO|ÉTICA|CONHECIMENTOS\s+[A-ZÁ-Úa-zá-ú\s]+)):[\s]*(.+)$/i);
+        if (inlineHeaderMatch) {
+            if (currentLines.length > 0) {
+                sections.push({ subject: currentSubjectTitle, rawText: currentLines.join('\n') });
+                currentLines = [];
+            }
+            currentSubjectTitle = inlineHeaderMatch[1].trim();
+            currentLines.push(inlineHeaderMatch[2].trim());
+            continue;
+        }
+
+        currentLines.push(line);
+    }
+
+    if (currentLines.length > 0) {
+        sections.push({ subject: currentSubjectTitle, rawText: currentLines.join('\n') });
+    }
+
+    const results = [];
+    for (const sec of sections) {
+        const rawTopics = extractTopicsFromSectionText(sec.rawText);
+        if (rawTopics.length > 0) {
+            results.push({
+                title: sec.subject,
+                topics: rawTopics
+            });
+        }
+    }
+
+    return results;
+}
+
+function extractTopicsFromSectionText(text) {
+    if (!text || !text.trim()) return [];
+
+    const cleanedText = text
+        .replace(/\r?\n/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Regex para identificar limites de itens numerados (ex: "1. ", "1.1. ", "6. ", "8.Das", "1.Lei", etc.)
+    // Ignora quando precedido por termos de legislação (ex: "nº 9.099/95", "Art. 1.015", etc.)
+    const splitRegex = /(?:^|[\.\;\n\r]\s+|\s+)(\d+(?:\.\d+)*)\s*[\.\-\)]\s*|(?:^|[\.\;\n\r]\s+|\s+)(\d+\.[A-Za-zÁ-Úá-ú])/g;
+    
+    const matchPositions = [];
+    let match;
+
+    while ((match = splitRegex.exec(cleanedText)) !== null) {
+        const fullMatch = match[0];
+        const numStr = match[1] || match[2];
+        const matchIndex = match.index;
+
+        const prefixIndex = Math.max(0, matchIndex - 25);
+        const textBefore = cleanedText.substring(prefixIndex, matchIndex).trim().toLowerCase();
+
+        // Se for número de lei, decreto, súmula ou artigo, não divide como tópico
+        const isLawNumber = /(?:n[º°\.]|lei|leis|artigo|artigos|art|arts|decreto|s[úu]mula|portaria|resolu[çc][ãa]o|lc|ec)\s*$/i.test(textBefore);
+        const textAfter = cleanedText.substring(matchIndex, matchIndex + 25);
+        const hasSlashYear = /\d+\/\d{2,4}/.test(textAfter.substring(0, 15));
+
+        if (!isLawNumber && !hasSlashYear) {
+            matchPositions.push({
+                index: matchIndex,
+                length: fullMatch.length,
+                num: numStr
+            });
+        }
+    }
+
+    const tokens = [];
+
+    if (matchPositions.length > 0) {
+        for (let i = 0; i < matchPositions.length; i++) {
+            const current = matchPositions[i];
+            const startPos = current.index + current.length;
+            const endPos = (i + 1 < matchPositions.length) ? matchPositions[i + 1].index : cleanedText.length;
+            
+            let topicText = cleanedText.substring(startPos, endPos).trim();
+            topicText = cleanTopicTitle(topicText);
+            if (topicText.length >= 2) {
+                tokens.push({
+                    title: topicText,
+                    subtopics: [topicText]
+                });
+            }
+        }
+
+        // Tópico anterior ao primeiro número
+        if (matchPositions[0].index > 0) {
+            let prefixText = cleanedText.substring(0, matchPositions[0].index).trim();
+            prefixText = cleanTopicTitle(prefixText);
+            if (prefixText.length >= 3) {
+                const subParts = prefixText.split(/[\;\.]\s+/).map(s => cleanTopicTitle(s)).filter(s => s.length >= 3);
+                for (const p of subParts) {
+                    tokens.unshift({
+                        title: p,
+                        subtopics: [p]
+                    });
+                }
+            }
+        }
+    } else {
+        // Sem números: divide por marcadores, ponto e vírgula ou pontos
+        const parts = cleanedText.split(/(?:[\;\n\r]+|\s*[-•*]\s+|\.\s+(?=[A-ZÁ-Ú]))/).map(p => cleanTopicTitle(p)).filter(p => p.length >= 3);
+        for (const p of parts) {
+            tokens.push({
+                title: p,
+                subtopics: [p]
+            });
+        }
+    }
+
+    return tokens;
+}
+
+function cleanTopicTitle(str) {
+    if (!str) return '';
+    return str
+        .replace(/^[\s.\-•*;,:\)]+/, '')
+        .replace(/[\s.\-;,:]+$/, '')
+        .trim();
+}
 
 export function parseEditalLocally(editalText, options = {}, existingSubjects = []) {
     const {
@@ -973,66 +1127,12 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
         return { success: false, error: 'Conteúdo do edital está vazio.' };
     }
 
-    const lines = editalText.split('\n');
-    const subjectsFound = [];
-    let currentSubject = null;
-
-    const subjectHeaderRegex = /^(?:[A-Z0-9.\-\s]+:)?\s*(DIREITO\s+[A-ZÁ-Ú\s]+|LÍNGUA PORTUGUESA|PORTUGUÊS|INFORMÁTICA|RACIOCÍNIO LÓGICO|ÉTICA|LEGISLAÇÃO|DIREITOS HUMANOS)[\s:]*$/i;
-    const numberedItemRegex = /^\s*(\d+(?:\.\d+)*)[.\-\s)]+(.+)$/;
-
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
-        if (!line) continue;
-
-        const isSubjectHeader = subjectHeaderRegex.test(line) ||
-            (line.toUpperCase() === line && line.length > 4 && line.length < 60 && !numberedItemRegex.test(line));
-
-        if (isSubjectHeader) {
-            const cleanTitle = line.replace(/[:\-#]/g, '').trim();
-            currentSubject = {
-                title: cleanTitle,
-                topics: []
-            };
-            subjectsFound.push(currentSubject);
-            continue;
-        }
-
-        const numMatch = line.match(numberedItemRegex);
-        if (numMatch) {
-            const topicTitle = numMatch[2].trim();
-            if (!currentSubject) {
-                currentSubject = { title: 'Conhecimentos Gerais', topics: [] };
-                subjectsFound.push(currentSubject);
-            }
-            currentSubject.topics.push({
-                title: topicTitle,
-                subtopics: [topicTitle]
-            });
-        } else if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-            const topicTitle = line.replace(/^[-•*]\s*/, '').trim();
-            if (!currentSubject) {
-                currentSubject = { title: 'Conhecimentos Gerais', topics: [] };
-                subjectsFound.push(currentSubject);
-            }
-            currentSubject.topics.push({
-                title: topicTitle,
-                subtopics: [topicTitle]
-            });
-        } else if (currentSubject && line.length > 3) {
-            const parts = line.split(';').map(p => p.trim()).filter(p => p.length > 2);
-            for (const part of parts) {
-                currentSubject.topics.push({
-                    title: part,
-                    subtopics: [part]
-                });
-            }
-        }
-    }
+    const subjectsFound = splitEditalIntoSubjectsAndTopics(editalText);
 
     if (subjectsFound.length === 0 || subjectsFound.every(s => s.topics.length === 0)) {
         return {
             success: false,
-            error: 'Não foi possível identificar matérias ou tópicos no texto do edital. Tente separar com títulos de matérias ou numeração (1., 2., etc.).'
+            error: 'Não foi possível identificar tópicos no texto do edital. Cole o conteúdo com títulos ou itens numerados.'
         };
     }
 
@@ -1041,8 +1141,14 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
     const allTopicIds = [];
     const allTopicsList = [];
 
+    // Clona matérias existentes para evitar mutação in-place indesejada
+    const clonedExistingSubjects = existingSubjects.map(s => ({
+        ...s,
+        topics: [...(s.topics || [])]
+    }));
+
     subjectsFound.forEach((sf) => {
-        let existing = findMatchingSubject(sf.title, existingSubjects);
+        let existing = findMatchingSubject(sf.title, clonedExistingSubjects);
 
         if (existing) {
             const newTopicsForExisting = [];
@@ -1067,30 +1173,35 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
         } else {
             const colorIndex = (existingSubjects.length + newSubjects.length) % SUBJECT_COLORS.length;
             const chosenColor = SUBJECT_COLORS[colorIndex];
+            const subjId = generateUniqueId('subj');
+
+            const topicsForNewSubject = sf.topics.map(t => {
+                const topObj = {
+                    id: generateUniqueId('top'),
+                    title: t.title,
+                    subtopics: t.subtopics || [t.title],
+                    isNewlyCreated: true
+                };
+                allTopicIds.push(topObj.id);
+                allTopicsList.push({ ...topObj, subjectId: subjId });
+                return topObj;
+            });
+
             const newSubj = {
-                id: generateUniqueId('subj'),
+                id: subjId,
                 title: sf.title,
                 color: chosenColor.color,
                 bgColor: chosenColor.bgColor,
                 bgLight: chosenColor.bgLight,
                 icon: ICONS[newSubjects.length % ICONS.length],
-                topics: sf.topics.map(t => {
-                    const topObj = {
-                        id: generateUniqueId('top'),
-                        title: t.title,
-                        subtopics: t.subtopics || [t.title],
-                        isNewlyCreated: true
-                    };
-                    allTopicIds.push(topObj.id);
-                    allTopicsList.push({ ...topObj, subjectId: newSubj.id });
-                    return topObj;
-                }),
+                topics: topicsForNewSubject,
                 isNewlyCreated: true
             };
             newSubjects.push(newSubj);
         }
     });
 
+    // Distribuição dos tópicos nas semanas e dias
     const scheduleStructure = {};
     let dayIndex = 1;
     let topicIndex = 0;
@@ -1147,7 +1258,7 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
     if (!apiKey) {
-        console.info("Gemini API key não encontrada no .env. Utilizando parser local.");
+        console.info("Gemini API key não configurada. Executando parser local inteligente.");
         return parseEditalLocally(editalText, options, existingSubjects);
     }
 
@@ -1161,7 +1272,8 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+        // Usa gemini-2.0-flash com fallback
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = `Você é um coordenador pedagógico e especialista em preparação jurídica para concursos públicos e OAB no Brasil.
 Analise o conteúdo programático do edital fornecido e crie uma matriz de estudos e um cronograma estruturado.
@@ -1185,7 +1297,7 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem textos explicativos antes ou de
       "topics": [
         {
           "title": "Título Claro do Tópico",
-          "subtopics": ["Subtópico 1", "Subtópico 2", "Subtópico 3"]
+          "subtopics": ["Subtópico 1", "Subtópico 2"]
         }
       ]
     }
@@ -1221,8 +1333,13 @@ Use "rest" para dias de descanso e "review" para dias de revisão. Intercale mat
         const allTopicIds = [];
         const topicNameToIdMap = new Map();
 
+        const clonedExistingSubjects = existingSubjects.map(s => ({
+            ...s,
+            topics: [...(s.topics || [])]
+        }));
+
         parsedAI.subjects.forEach((aiSubject) => {
-            let existing = findMatchingSubject(aiSubject.title, existingSubjects);
+            let existing = findMatchingSubject(aiSubject.title, clonedExistingSubjects);
 
             if (existing) {
                 const newTopics = [];
@@ -1245,24 +1362,28 @@ Use "rest" para dias de descanso e "review" para dias de revisão. Intercale mat
             } else {
                 const colorIndex = (existingSubjects.length + newSubjects.length) % SUBJECT_COLORS.length;
                 const chosenColor = SUBJECT_COLORS[colorIndex];
+                const subjId = generateUniqueId('subj');
+
+                const topicsForNewSubject = aiSubject.topics.map(aiTop => {
+                    const topObj = {
+                        id: generateUniqueId('top'),
+                        title: aiTop.title,
+                        subtopics: aiTop.subtopics || [aiTop.title],
+                        isNewlyCreated: true
+                    };
+                    allTopicIds.push(topObj.id);
+                    topicNameToIdMap.set(normalizeString(aiTop.title), topObj.id);
+                    return topObj;
+                });
+
                 const newSubj = {
-                    id: generateUniqueId('subj'),
+                    id: subjId,
                     title: aiSubject.title,
                     color: chosenColor.color,
                     bgColor: chosenColor.bgColor,
                     bgLight: chosenColor.bgLight,
                     icon: ICONS[newSubjects.length % ICONS.length],
-                    topics: aiSubject.topics.map(aiTop => {
-                        const topObj = {
-                            id: generateUniqueId('top'),
-                            title: aiTop.title,
-                            subtopics: aiTop.subtopics || [aiTop.title],
-                            isNewlyCreated: true
-                        };
-                        allTopicIds.push(topObj.id);
-                        topicNameToIdMap.set(normalizeString(aiTop.title), topObj.id);
-                        return topObj;
-                    }),
+                    topics: topicsForNewSubject,
                     isNewlyCreated: true
                 };
                 newSubjects.push(newSubj);

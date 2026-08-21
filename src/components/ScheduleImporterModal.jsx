@@ -144,6 +144,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
 
     // Estado de resultado e processamento
     const [loading, setLoading] = useState(false);
+    const [loadingMode, setLoadingMode] = useState(''); // 'local' | 'ai'
     const [loadingMessage, setLoadingMessage] = useState('');
     const [error, setError] = useState('');
     const [parsedResult, setParsedResult] = useState(null);
@@ -176,6 +177,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             setSelectedPreviewWeek('week1');
             setError('');
             setLoading(false);
+            setLoadingMode('');
             setSaving(false);
             setEditingTopic(null);
             setAddingToDay(null);
@@ -225,6 +227,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
         }
 
         setLoading(true);
+        setLoadingMode(useAI ? 'ai' : 'local');
         setLoadingMessage(useAI ? 'JusIA analisando edital e montando cronograma...' : 'Processando tópicos do edital...');
 
         try {
@@ -246,6 +249,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             if (!result.success) {
                 setError(result.error || 'Erro ao gerar cronograma a partir do edital.');
                 setLoading(false);
+                setLoadingMode('');
                 return;
             }
 
@@ -262,6 +266,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             setError('Ocorreu um erro ao processar. Tente novamente ou use o modo local.');
         } finally {
             setLoading(false);
+            setLoadingMode('');
         }
     };
 
@@ -1071,19 +1076,26 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                         <button
                                             onClick={() => handleGenerateFromEdital(false)}
                                             disabled={loading || !editalText.trim()}
-                                            className="flex-1 sm:flex-none px-5 py-3 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl font-medium text-sm transition-all"
+                                            className="flex-1 sm:flex-none px-5 py-3 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
                                         >
-                                            Gerar Localmente (Grátis)
+                                            {loading && loadingMode === 'local' ? (
+                                                <>
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                    <span>Processando...</span>
+                                                </>
+                                            ) : (
+                                                <span>Gerar Localmente (Grátis)</span>
+                                            )}
                                         </button>
                                         <button
                                             onClick={() => handleGenerateFromEdital(true)}
                                             disabled={loading || !editalText.trim()}
                                             className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium text-sm shadow-md transition-all flex items-center justify-center gap-2"
                                         >
-                                            {loading ? (
+                                            {loading && loadingMode === 'ai' ? (
                                                 <>
                                                     <Loader2 size={16} className="animate-spin" />
-                                                    <span>{loadingMessage || 'Gerando...'}</span>
+                                                    <span>{loadingMessage || 'JusIA Gerando...'}</span>
                                                 </>
                                             ) : (
                                                 <>
