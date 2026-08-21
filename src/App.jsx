@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Sidebar, SidebarBody, SidebarLink } from './components/ui/sidebar';
 import {
   BookOpen,
