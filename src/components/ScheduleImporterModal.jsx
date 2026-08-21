@@ -1055,30 +1055,50 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
                                             Ordem das Matérias no Cronograma
                                         </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => setDistributionMode('interleaved')}
-                                                className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                                                className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-2 ${
                                                     distributionMode === 'interleaved'
                                                         ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-sm'
                                                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
                                                 }`}
                                             >
-                                                <div className={`p-2.5 rounded-xl shrink-0 ${
+                                                <div className={`p-2 rounded-xl shrink-0 w-max ${
                                                     distributionMode === 'interleaved' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
                                                 }`}>
-                                                    <Shuffle size={18} />
+                                                    <Shuffle size={16} />
                                                 </div>
-                                                <div className="flex-1">
+                                                <div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold">Intercalar Matérias</span>
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 rounded-full">
-                                                            Recomendado
-                                                        </span>
+                                                        <span className="text-xs font-bold">Intercalar Muito</span>
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 rounded-md">Rec</span>
                                                     </div>
-                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                                                        Ciclo de estudos: alterna matérias diferentes a cada dia para maior dinamismo e retenção da memória.
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                        Ciclo rápido: alterna matérias diferentes a cada dia.
+                                                    </p>
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setDistributionMode('moderate')}
+                                                className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-2 ${
+                                                    distributionMode === 'moderate'
+                                                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-sm'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                                                }`}
+                                            >
+                                                <div className={`p-2 rounded-xl shrink-0 w-max ${
+                                                    distributionMode === 'moderate' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                                                }`}>
+                                                    <Layers size={16} />
+                                                </div>
+                                                <div>
+                                                    <span className="text-xs font-bold">Intercalar Pouco</span>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                        Por blocos: 2 a 3 dias na mesma matéria antes de trocar.
                                                     </p>
                                                 </div>
                                             </button>
@@ -1086,21 +1106,21 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setDistributionMode('sequential')}
-                                                className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                                                className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-2 ${
                                                     distributionMode === 'sequential'
                                                         ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-sm'
                                                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
                                                 }`}
                                             >
-                                                <div className={`p-2.5 rounded-xl shrink-0 ${
+                                                <div className={`p-2 rounded-xl shrink-0 w-max ${
                                                     distributionMode === 'sequential' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
                                                 }`}>
-                                                    <ListOrdered size={18} />
+                                                    <ListOrdered size={16} />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <span className="text-xs font-bold">Uma Matéria por Vez</span>
-                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                                                        Linear / Modular: estuda e esgota todo o conteúdo de uma matéria antes de avançar para a próxima.
+                                                <div>
+                                                    <span className="text-xs font-bold">Uma por Vez</span>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                        Linear: esgota toda a matéria antes de avançar.
                                                     </p>
                                                 </div>
                                             </button>

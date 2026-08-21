@@ -1212,8 +1212,25 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
     if (distributionMode === 'sequential') {
         // Uma matéria por vez (Linear / Modular)
         allTopicsList = subjectBuckets.flat();
+    } else if (distributionMode === 'moderate') {
+        // Intercalado por blocos: estuda N tópicos de uma matéria, depois passa para a próxima (evita trocar a cada minuto)
+        let hasMore = true;
+        let round = 0;
+        const blockSize = 3; // 3 tópicos seguidos da mesma matéria antes de ciclar
+        while (hasMore) {
+            hasMore = false;
+            for (let b = 0; b < subjectBuckets.length; b++) {
+                const startIdx = round * blockSize;
+                const endIdx = startIdx + blockSize;
+                if (startIdx < subjectBuckets[b].length) {
+                    allTopicsList.push(...subjectBuckets[b].slice(startIdx, endIdx));
+                    hasMore = true;
+                }
+            }
+            round++;
+        }
     } else {
-        // Intercalado / Ciclo de Estudos (Round-Robin equilibrado entre as matérias)
+        // Intercalado Máximo / Ciclo Rápido (Round-Robin de 1 em 1)
         let hasMore = true;
         let round = 0;
         while (hasMore) {
@@ -1307,9 +1324,15 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
             'gemini-flash-latest'
         ];
 
-        const distributionInstruction = distributionMode === 'sequential'
-            ? 'AGRUPE os tópicos matéria por matéria em ordem sequencial (finalize uma matéria antes de iniciar a próxima).'
-            : 'INTERCALE as matérias ao longo dos dias (Ciclo de Estudos: distribua matérias diferentes em cada dia para dinamismo e retenção).';
+        let distributionInstruction = '';
+        if (distributionMode === 'sequential') {
+            distributionInstruction = 'LINEAR: Estude e esgote 100% de uma matéria antes de avançar para a próxima matéria.';
+        } else if (distributionMode === 'moderate') {
+            distributionInstruction = 'BLOCOS: Estude a mesma matéria por 2 ou 3 dias seguidos antes de trocar para uma matéria diferente.';
+        } else {
+            // 'interleaved' / default
+            distributionInstruction = 'CICLO RÁPIDO (MAX INTERCALADO): Nunca estude a mesma matéria dois dias seguidos. Alterne matérias diferentes todos os dias para máxima rotação.';
+        }
 
         const prompt = `Você é um coordenador pedagógico e especialista em preparação jurídica para concursos públicos e OAB no Brasil.
 Analise o conteúdo programático do edital fornecido e crie uma matriz de estudos e um cronograma estruturado.
