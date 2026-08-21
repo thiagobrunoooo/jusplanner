@@ -1322,6 +1322,12 @@ PARÂMETROS DO CRONOGRAMA:
 - Dias de descanso por semana: Dias da semana índice [${restDays.join(', ')}] (1=Segunda, 7=Domingo)
 - Modo de distribuição: ${distributionInstruction}
 
+REGRAS DE CLASSIFICAÇÃO (MUITO IMPORTANTE):
+1. IDENTIFICAÇÃO DE MATÉRIAS (Subjects): Textos gerais em CAIXA ALTA, negrito ou em destaque principal (ex: DIREITO CONSTITUCIONAL, LÍNGUA PORTUGUESA, CONHECIMENTOS BÁSICOS) representam a "Matéria".
+2. IDENTIFICAÇÃO DE TÓPICOS (Topics): Os números ou pontos listados logo abaixo ou após o nome da matéria (ex: 1. Princípios fundamentais. 2. Direitos sociais.) representam os "Tópicos".
+3. GRANULARIDADE: Desmembre blocos gigantes de texto em tópicos menores, lógicos e estudáveis (ex: transformar "1. Atos administrativos: conceito, requisitos, atributos..." em múltiplos subtópicos lógicos, mas mantendo um Tópico pai claro).
+4. CORRESPONDÊNCIA EXATA NO CRONOGRAMA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics" das "subjects". Se o nome divergir 1 letra, o sistema falhará.
+
 CONTEÚDO DO EDITAL:
 ${editalText.substring(0, 15000)}
 
