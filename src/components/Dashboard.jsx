@@ -586,7 +586,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
 
                     <div className="bg-white dark:bg-slate-950/95 rounded-[22px] p-5 lg:p-6 h-full flex flex-col justify-between relative overflow-hidden backdrop-blur-sm">
                         <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
                                     <motion.div
                                         className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 rounded-xl text-amber-600 dark:text-amber-400 shadow-sm"
@@ -598,46 +598,41 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                                     <h3 className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-wider">Estudar Hoje</h3>
                                 </div>
 
-                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/70 px-2 py-0.5 rounded-lg border border-amber-300/80 dark:border-amber-700/60 shadow-xs flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                    <span>{stats.todayStudy.weekKey.replace('week', 'Sem. ')} • {stats.todayStudy.dayKey}</span>
+                                <span className="text-xs font-bold text-orange-600 dark:text-orange-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 flex-shrink-0">
+                                    <span>Abrir</span>
+                                    <span>→</span>
                                 </span>
                             </div>
 
-                            {/* Conteúdo resumido do dia de hoje */}
-                            <div className="space-y-1.5 mt-2">
+                            {/* Conteúdo: apenas os assuntos do dia */}
+                            <div className="space-y-2 mt-2">
                                 {stats.todayStudy.isRest ? (
                                     <div className="py-1">
                                         <p className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                                             <span>☕ Dia de Descanso</span>
                                         </p>
-                                        <p className="text-[11px] text-slate-400 mt-0.5">Recarregue as energias para o próximo ciclo</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Recarregue as energias para o próximo ciclo</p>
                                     </div>
                                 ) : stats.todayStudy.isReview ? (
                                     <div className="py-1">
                                         <p className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                                             <span>🔄 Revisão e Questões</span>
                                         </p>
-                                        <p className="text-[11px] text-slate-400 mt-0.5">Consolidação da memória e treino</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Consolidação da memória e treino</p>
                                     </div>
                                 ) : stats.todayStudy.topics.length > 0 ? (
-                                    <div className="space-y-1.5">
-                                        {stats.todayStudy.topics.slice(0, 2).map((topic) => (
-                                            <div key={topic.id} className="flex items-center gap-1.5 min-w-0">
-                                                <span className={cn(
-                                                    "text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 truncate max-w-[95px]",
-                                                    topic.subjectBgLight ? `${topic.subjectBgLight} ${topic.subjectColor} border-transparent` : "bg-slate-100 text-slate-600 border-slate-200"
-                                                )}>
-                                                    {topic.subjectTitle}
-                                                </span>
-                                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                    <div className="space-y-2">
+                                        {stats.todayStudy.topics.slice(0, 3).map((topic) => (
+                                            <div key={topic.id} className="flex items-center gap-2 min-w-0">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                                                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
                                                     {topic.title}
                                                 </span>
                                             </div>
                                         ))}
-                                        {stats.todayStudy.topics.length > 2 && (
-                                            <p className="text-[10px] font-bold text-slate-400">
-                                                + {stats.todayStudy.topics.length - 2} outros tópicos hoje
+                                        {stats.todayStudy.topics.length > 3 && (
+                                            <p className="text-[11px] font-semibold text-slate-400 pl-3.5">
+                                                + {stats.todayStudy.topics.length - 3} outros assuntos hoje
                                             </p>
                                         )}
                                     </div>
@@ -648,28 +643,6 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                                     </div>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Barra de Progresso e Ação */}
-                        <div className="mt-4 pt-2 border-t border-slate-100/80 dark:border-slate-800/60 flex items-center justify-between relative z-10">
-                            <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-                                <div className="h-2 flex-1 max-w-[100px] bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner">
-                                    <motion.div
-                                        className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${stats.todayStudy.progress}%` }}
-                                        transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.4 }}
-                                    />
-                                </div>
-                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                    {stats.todayStudy.completedTasks}/{stats.todayStudy.totalTasks} tarefas
-                                </span>
-                            </div>
-
-                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 flex-shrink-0">
-                                <span>Abrir</span>
-                                <span>→</span>
-                            </span>
                         </div>
 
                         <div className="absolute -right-6 -bottom-6 opacity-[0.06] dark:opacity-[0.12] pointer-events-none">
