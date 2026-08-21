@@ -141,7 +141,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
     const [editalText, setEditalText] = useState('');
     const [weeksCount, setWeeksCount] = useState(8);
     const [studyDaysPerWeek, setStudyDaysPerWeek] = useState(6);
-    const [topicsPerDay, setTopicsPerDay] = useState(2);
+    const [studyHoursPerDay, setStudyHoursPerDay] = useState(4);
     const [restDays, setRestDays] = useState([7]);
     const [distributionMode, setDistributionMode] = useState('interleaved'); // 'interleaved' | 'sequential'
 
@@ -238,7 +238,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             const options = {
                 weeksCount,
                 studyDaysPerWeek,
-                topicsPerDay,
+                studyHoursPerDay,
                 restDays,
                 distributionMode,
                 examName: scheduleName.trim() || 'Concurso / OAB'
@@ -775,7 +775,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                 isCustomized: true,
                 studyDaysPerWeek,
                 restDays,
-                topicsPerDay
+                studyHoursPerDay
             };
 
             const newSchedule = await createSchedule(finalName, uniqueTopicIds, false, settings);
@@ -996,20 +996,20 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
 
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
-                                            Tópicos por Dia
+                                            Horas/Dia (Esforço)
                                         </label>
                                         <div className="flex gap-1.5">
-                                            {[1, 2, 3, 4].map(n => (
+                                            {[2, 3, 4, 6, 8].map(n => (
                                                 <button
                                                     key={n}
                                                     type="button"
-                                                    onClick={() => setTopicsPerDay(n)}
-                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${topicsPerDay === n
+                                                    onClick={() => setStudyHoursPerDay(n)}
+                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${studyHoursPerDay === n
                                                         ? 'bg-blue-600 text-white shadow-sm'
-                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                                                         }`}
                                                 >
-                                                    {n}
+                                                    {n}h
                                                 </button>
                                             ))}
                                         </div>

@@ -1119,7 +1119,7 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
     const {
         weeksCount = 8,
         studyDaysPerWeek = 6,
-        topicsPerDay = 2,
+        studyHoursPerDay = 4,
         restDays = [7],
         distributionMode = 'interleaved' // 'interleaved' | 'sequential'
     } = options;
@@ -1250,6 +1250,11 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
     let dayIndex = 1;
     let topicIndex = 0;
     const restSet = new Set(restDays);
+    
+    // Cálculo de tópicos por dia dinâmico
+    const totalStudyDays = weeksCount * (7 - restSet.size); // dias úteis reais por semana
+    // Garante no mínimo 1 tópico por dia e arredonda para cima se sobrar tópicos
+    const dynamicTopicsPerDay = Math.max(1, Math.ceil(allTopicsList.length / (totalStudyDays || 1)));
 
     for (let w = 1; w <= weeksCount; w++) {
         const weekKey = `week${w}`;
@@ -1270,7 +1275,7 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
             }
 
             const dayTopicIds = [];
-            for (let t = 0; t < topicsPerDay && topicIndex < allTopicsList.length; t++) {
+            for (let t = 0; t < dynamicTopicsPerDay && topicIndex < allTopicsList.length; t++) {
                 dayTopicIds.push(allTopicsList[topicIndex].id);
                 topicIndex++;
             }
@@ -1309,7 +1314,7 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
     const {
         weeksCount = 8,
         studyDaysPerWeek = 6,
-        topicsPerDay = 2,
+        studyHoursPerDay = 4,
         restDays = [7],
         distributionMode = 'interleaved',
         examName = 'Concurso / Exame'
@@ -1339,17 +1344,23 @@ Analise o conteúdo programático do edital fornecido e crie uma matriz de estud
 
 PARÂMETROS DO CRONOGRAMA:
 - Nome do Exame: "${examName}"
-- Duração total: ${weeksCount} semanas
+- Duração total do plano: ${weeksCount} semanas
 - Dias de estudo por semana: ${studyDaysPerWeek} dias
-- Tópicos por dia de estudo: ${topicsPerDay} tópicos
-- Dias de descanso por semana: Dias da semana índice [${restDays.join(', ')}] (1=Segunda, 7=Domingo)
-- Modo de distribuição: ${distributionInstruction}
+- Horas de estudo disponíveis por dia: ${studyHoursPerDay} horas
+- Dias de descanso na semana: Índices [${restDays.join(', ')}] (1=Seg, 7=Dom)
+- Distribuição: ${distributionInstruction}
 
-REGRAS DE CLASSIFICAÇÃO (MUITO IMPORTANTE):
-1. IDENTIFICAÇÃO DE MATÉRIAS (Subjects): Textos gerais em CAIXA ALTA, negrito ou em destaque principal (ex: DIREITO CONSTITUCIONAL, LÍNGUA PORTUGUESA, CONHECIMENTOS BÁSICOS) representam a "Matéria".
-2. IDENTIFICAÇÃO DE TÓPICOS (Topics): Os números ou pontos listados logo abaixo ou após o nome da matéria (ex: 1. Princípios fundamentais. 2. Direitos sociais.) representam os "Tópicos".
-3. GRANULARIDADE: Desmembre blocos gigantes de texto em tópicos menores, lógicos e estudáveis (ex: transformar "1. Atos administrativos: conceito, requisitos, atributos..." em múltiplos subtópicos lógicos, mas mantendo um Tópico pai claro).
-4. CORRESPONDÊNCIA EXATA NO CRONOGRAMA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics" das "subjects". Se o nome divergir 1 letra, o sistema falhará.
+REGRA MATEMÁTICA DE ESFORÇO DIÁRIO (MUITO IMPORTANTE):
+1. Você não deve usar um número fixo de tópicos por dia. Em vez disso, distribua o conteúdo baseando-se no PESO (complexidade) de cada assunto e nas horas disponíveis (${studyHoursPerDay}h/dia).
+2. Estime mentalmente o peso de cada tópico (Nível 1 = Curto, Nível 3 = Médio, Nível 5 = Denso/Complexo).
+3. Agrupe ou separe os tópicos de forma que a carga cognitiva de cada dia seja perfeitamente compatível com as ${studyHoursPerDay} horas informadas.
+4. Se um tópico for massivo (ex: Licitações, Teoria do Delito) e o aluno tem poucas horas, FRACIONE o tópico no JSON em "Parte 1", "Parte 2", etc., para não estourar a carga diária.
+5. Se o aluno tem muitas horas (ex: 6h ou 8h), você PODE e DEVE agrupar múltiplos tópicos no mesmo dia para fazer o edital render.
+
+REGRAS DE CLASSIFICAÇÃO:
+1. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
+2. IDENTIFICAÇÃO DE TÓPICOS: Os itens enumerados logo após representam os "Tópicos" (Topics).
+3. CORRESPONDÊNCIA EXATA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics". Se o nome divergir 1 letra, o sistema falhará.
 
 CONTEÚDO DO EDITAL:
 ${editalText.substring(0, 15000)}
