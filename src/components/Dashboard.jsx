@@ -277,6 +277,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
 
         return {
             totalQuestions,
+            totalCorrect,
             accuracy,
             pieData,
             totalTopics,
@@ -807,7 +808,7 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                     </div>
                 </motion.div>
 
-                {/* Metric 3: Ofensiva / Sequência de Estudos (4º card para completar a grade com 4 cards) */}
+                {/* Metric 3: Acertos Líquidos (Total de questões acertadas) */}
                 <motion.div
                     variants={metricCardVariants}
                     whileHover={{
@@ -818,30 +819,30 @@ const Dashboard = ({ progress = {}, dailyHistory = {}, studyTime = {}, userStats
                     whileTap={{ scale: 0.97 }}
                     className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-xl group cursor-pointer overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-400/5 dark:to-orange-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-teal-500/10 to-emerald-500/10 dark:from-teal-400/5 dark:to-emerald-400/5 rounded-full blur-2xl -translate-y-6 translate-x-6" />
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <motion.div
-                                    className="p-2.5 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-xl text-amber-600 dark:text-amber-400 shadow-xs"
-                                    animate={{ scale: [1, 1.08, 1] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                    className="p-2.5 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/40 dark:to-emerald-900/40 rounded-xl text-teal-600 dark:text-teal-400 shadow-xs"
+                                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
+                                    transition={{ duration: 0.5 }}
                                 >
-                                    <Flame size={22} className="text-amber-500 fill-amber-500" />
+                                    <CheckCheck size={22} />
                                 </motion.div>
-                                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Ofensiva</h3>
+                                <h3 className="text-slate-600 dark:text-slate-300 font-bold text-sm">Acertos Líquidos</h3>
                             </div>
                         </div>
                         <div>
                             <motion.p
-                                className="text-3xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-400 bg-clip-text text-transparent"
+                                className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400 bg-clip-text text-transparent"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.45, type: "spring", stiffness: 100 }}
                             >
-                                {userStats?.streak || 1} {(userStats?.streak || 1) === 1 ? 'Dia' : 'Dias'}
+                                {stats.totalCorrect}
                             </motion.p>
-                            <p className="text-xs text-slate-400 mt-1">Sequência de estudos ativa</p>
+                            <p className="text-xs text-slate-400 mt-1">Respostas corretas</p>
                         </div>
                     </div>
                 </motion.div>
