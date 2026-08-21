@@ -1300,8 +1300,12 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Usa gemini-flash-latest para velocidade, estabilidade e compatibilidade com o plano gratuito
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const candidateModels = [
+            'gemini-flash-lite-latest',
+            'gemini-3.5-flash',
+            'gemini-3-flash-preview',
+            'gemini-flash-latest'
+        ];
 
         const distributionInstruction = distributionMode === 'sequential'
             ? 'AGRUPE os tópicos matéria por matéria em ordem sequencial (finalize uma matéria antes de iniciar a próxima).'
@@ -1346,8 +1350,24 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem textos explicativos antes ou de
 
 Use "rest" para dias de descanso e "review" para dias de revisão. ${distributionInstruction}`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        let responseText = null;
+        let lastError = null;
+
+        for (const mName of candidateModels) {
+            try {
+                const model = genAI.getGenerativeModel({ model: mName });
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+                if (responseText) break;
+            } catch (err) {
+                console.warn(`[JusIA Edital] Falha no modelo ${mName}, tentando próximo...`, err.message);
+                lastError = err;
+            }
+        }
+
+        if (!responseText) {
+            throw lastError || new Error("Nenhum modelo da IA respondeu.");
+        }
 
         let jsonString = responseText.trim();
         const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
