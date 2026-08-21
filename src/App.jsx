@@ -81,44 +81,47 @@ function App() {
       const results = [];
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.warn("[Reset] Nenhum usuário autenticado encontrado.");
+          return "Nenhum usuário logado";
+        }
+
         try {
-          const { error } = await supabase.from('topic_progress').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          const { error } = await supabase.from('topic_progress').delete().eq('user_id', user.id);
           if (error) throw error;
           results.push("Progress: OK");
         } catch (e) { console.error("Progress reset failed:", e); results.push("Progress: Failed"); }
 
         try {
-          const { error } = await supabase.from('daily_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          const { error } = await supabase.from('daily_history').delete().eq('user_id', user.id);
           if (error) throw error;
           results.push("History: OK");
         } catch (e) { console.error("History reset failed:", e); results.push("History: Failed"); }
 
         try {
-          const { error } = await supabase.from('study_time').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          const { error } = await supabase.from('study_time').delete().eq('user_id', user.id);
           if (error) throw error;
           results.push("StudyTime: OK");
         } catch (e) { console.error("StudyTime reset failed:", e); results.push("StudyTime: Failed"); }
 
         try {
-          const { error } = await supabase.from('notes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          const { error } = await supabase.from('notes').delete().eq('user_id', user.id);
           if (error) throw error;
           results.push("Notes: OK");
         } catch (e) { console.error("Notes reset failed:", e); results.push("Notes: Failed"); }
 
         try {
-          const { error } = await supabase.from('materials').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          const { error } = await supabase.from('materials').delete().eq('user_id', user.id);
           if (error) throw error;
           results.push("Materials: OK");
         } catch (e) { console.error("Materials delete failed:", e); results.push("Materials: Failed"); }
 
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from('profiles').update({
-              xp: 0, level: 1, streak: 0, last_activity: null
-            }).eq('id', user.id);
-            results.push("Profile: OK");
-          }
+          await supabase.from('profiles').update({
+            xp: 0, level: 1, streak: 0, last_activity: null
+          }).eq('id', user.id);
+          results.push("Profile: OK");
         } catch (e) { console.error("Profile update failed:", e); results.push("Profile: Failed"); }
 
         localStorage.clear();
