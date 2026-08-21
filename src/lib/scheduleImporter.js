@@ -1120,7 +1120,8 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
         weeksCount = 8,
         studyDaysPerWeek = 6,
         topicsPerDay = 2,
-        restDays = [7]
+        restDays = [7],
+        distributionMode = 'interleaved' // 'interleaved' | 'sequential'
     } = options;
 
     if (!editalText || !editalText.trim()) {
@@ -1139,7 +1140,7 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
     const newSubjects = [];
     const updatedSubjects = [];
     const allTopicIds = [];
-    const allTopicsList = [];
+    const subjectBuckets = [];
 
     // Clona matérias existentes para evitar mutação in-place indesejada
     const clonedExistingSubjects = existingSubjects.map(s => ({
@@ -1152,6 +1153,7 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
 
         if (existing) {
             const newTopicsForExisting = [];
+            const bucketTopics = [];
             sf.topics.forEach(t => {
                 let existingTopic = findMatchingTopic(t.title, existing);
                 if (!existingTopic) {
@@ -1165,10 +1167,13 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
                     newTopicsForExisting.push(existingTopic);
                 }
                 allTopicIds.push(existingTopic.id);
-                allTopicsList.push({ ...existingTopic, subjectId: existing.id });
+                bucketTopics.push({ ...existingTopic, subjectId: existing.id, subjectTitle: existing.title });
             });
             if (newTopicsForExisting.length > 0) {
                 updatedSubjects.push(existing);
+            }
+            if (bucketTopics.length > 0) {
+                subjectBuckets.push(bucketTopics);
             }
         } else {
             const colorIndex = (existingSubjects.length + newSubjects.length) % SUBJECT_COLORS.length;
@@ -1183,7 +1188,6 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
                     isNewlyCreated: true
                 };
                 allTopicIds.push(topObj.id);
-                allTopicsList.push({ ...topObj, subjectId: subjId });
                 return topObj;
             });
 
@@ -1198,8 +1202,31 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
                 isNewlyCreated: true
             };
             newSubjects.push(newSubj);
+
+            subjectBuckets.push(topicsForNewSubject.map(t => ({ ...t, subjectId: subjId, subjectTitle: sf.title })));
         }
     });
+
+    // Ordenação dos tópicos baseada em distributionMode
+    let allTopicsList = [];
+    if (distributionMode === 'sequential') {
+        // Uma matéria por vez (Linear / Modular)
+        allTopicsList = subjectBuckets.flat();
+    } else {
+        // Intercalado / Ciclo de Estudos (Round-Robin equilibrado entre as matérias)
+        let hasMore = true;
+        let round = 0;
+        while (hasMore) {
+            hasMore = false;
+            for (let b = 0; b < subjectBuckets.length; b++) {
+                if (round < subjectBuckets[b].length) {
+                    allTopicsList.push(subjectBuckets[b][round]);
+                    hasMore = true;
+                }
+            }
+            round++;
+        }
+    }
 
     // Distribuição dos tópicos nas semanas e dias
     const scheduleStructure = {};
@@ -1267,6 +1294,7 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
         studyDaysPerWeek = 6,
         topicsPerDay = 2,
         restDays = [7],
+        distributionMode = 'interleaved',
         examName = 'Concurso / Exame'
     } = options;
 
@@ -1274,6 +1302,10 @@ export async function generateScheduleFromEditalWithAI(editalText, options = {},
         const genAI = new GoogleGenerativeAI(apiKey);
         // Usa gemini-2.0-flash com fallback
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const distributionInstruction = distributionMode === 'sequential'
+            ? 'AGRUPE os tópicos matéria por matéria em ordem sequencial (finalize uma matéria antes de iniciar a próxima).'
+            : 'INTERCALE as matérias ao longo dos dias (Ciclo de Estudos: distribua matérias diferentes em cada dia para dinamismo e retenção).';
 
         const prompt = `Você é um coordenador pedagógico e especialista em preparação jurídica para concursos públicos e OAB no Brasil.
 Analise o conteúdo programático do edital fornecido e crie uma matriz de estudos e um cronograma estruturado.
@@ -1284,6 +1316,7 @@ PARÂMETROS DO CRONOGRAMA:
 - Dias de estudo por semana: ${studyDaysPerWeek} dias
 - Tópicos por dia de estudo: ${topicsPerDay} tópicos
 - Dias de descanso por semana: Dias da semana índice [${restDays.join(', ')}] (1=Segunda, 7=Domingo)
+- Modo de distribuição: ${distributionInstruction}
 
 CONTEÚDO DO EDITAL:
 ${editalText.substring(0, 15000)}
@@ -1311,7 +1344,7 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem textos explicativos antes ou de
   }
 }
 
-Use "rest" para dias de descanso e "review" para dias de revisão. Intercale matérias diferentes no mesmo dia.`;
+Use "rest" para dias de descanso e "review" para dias de revisão. ${distributionInstruction}`;
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();

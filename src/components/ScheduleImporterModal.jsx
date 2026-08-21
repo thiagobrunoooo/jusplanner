@@ -27,7 +27,9 @@ import {
     BookMarked,
     CalendarPlus,
     Tag,
-    Pencil
+    Pencil,
+    Shuffle,
+    ListOrdered
 } from 'lucide-react';
 import { useSubjects } from '../hooks/useSubjects.jsx';
 import { useSchedules } from '../hooks/useSchedules';
@@ -141,6 +143,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
     const [studyDaysPerWeek, setStudyDaysPerWeek] = useState(6);
     const [topicsPerDay, setTopicsPerDay] = useState(2);
     const [restDays, setRestDays] = useState([7]);
+    const [distributionMode, setDistributionMode] = useState('interleaved'); // 'interleaved' | 'sequential'
 
     // Estado de resultado e processamento
     const [loading, setLoading] = useState(false);
@@ -172,6 +175,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             setStudyDaysPerWeek(6);
             setTopicsPerDay(2);
             setRestDays([7]);
+            setDistributionMode('interleaved');
             setParsedResult(null);
             setPreviewSchedule({});
             setSelectedPreviewWeek('week1');
@@ -236,6 +240,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                 studyDaysPerWeek,
                 topicsPerDay,
                 restDays,
+                distributionMode,
                 examName: scheduleName.trim() || 'Concurso / OAB'
             };
 
@@ -1043,6 +1048,62 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                                     {day.name}
                                                 </button>
                                             ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="md:col-span-3 pt-3 border-t border-slate-200/80 dark:border-slate-700/80">
+                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
+                                            Ordem das Matérias no Cronograma
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setDistributionMode('interleaved')}
+                                                className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                                                    distributionMode === 'interleaved'
+                                                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-sm'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                                                }`}
+                                            >
+                                                <div className={`p-2.5 rounded-xl shrink-0 ${
+                                                    distributionMode === 'interleaved' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                                                }`}>
+                                                    <Shuffle size={18} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold">Intercalar Matérias</span>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 rounded-full">
+                                                            Recomendado
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                        Ciclo de estudos: alterna matérias diferentes a cada dia para maior dinamismo e retenção da memória.
+                                                    </p>
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setDistributionMode('sequential')}
+                                                className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                                                    distributionMode === 'sequential'
+                                                        ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-sm'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                                                }`}
+                                            >
+                                                <div className={`p-2.5 rounded-xl shrink-0 ${
+                                                    distributionMode === 'sequential' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                                                }`}>
+                                                    <ListOrdered size={18} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <span className="text-xs font-bold">Uma Matéria por Vez</span>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                                                        Linear / Modular: estuda e esgota todo o conteúdo de uma matéria antes de avançar para a próxima.
+                                                    </p>
+                                                </div>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
