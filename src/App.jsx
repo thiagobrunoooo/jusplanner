@@ -378,7 +378,7 @@ function App() {
               </span>
             </div>
 
-            <div className="mt-4 flex flex-col gap-1">
+            <div className="mt-5 flex flex-col gap-2.5">
               {menuItems.map((item) => (
                 <SidebarLink
                   key={item.id}
