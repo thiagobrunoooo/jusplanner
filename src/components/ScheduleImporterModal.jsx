@@ -144,7 +144,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
     const [studyHoursPerDay, setStudyHoursPerDay] = useState(4);
     const [restDays, setRestDays] = useState([7]);
     const [distributionMode, setDistributionMode] = useState('interleaved'); // 'interleaved' | 'sequential'
-
+    const [editalFile, setEditalFile] = useState(null); // { name, base64, mimeType }
     // Estado de resultado e processamento
     const [loading, setLoading] = useState(false);
     const [loadingMode, setLoadingMode] = useState(''); // 'local' | 'ai'
@@ -171,6 +171,7 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
             setScheduleName('');
             setRawText('');
             setEditalText('');
+            setEditalFile(null);
             setWeeksCount(8);
             setStudyDaysPerWeek(6);
             setStudyHoursPerDay(4);
@@ -222,11 +223,38 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
         setActiveTab('preview');
     };
 
+    // File upload handler for PDF/Images
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Limite de 5MB
+        if (file.size > 5 * 1024 * 1024) {
+            setError('O arquivo deve ter no máximo 5MB. Tente comprimir a imagem ou PDF.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            setEditalFile({
+                name: file.name,
+                mimeType: file.type,
+                base64: base64String
+            });
+            setError('');
+        };
+        reader.onerror = () => {
+            setError('Erro ao ler o arquivo. Tente novamente.');
+        };
+        reader.readAsDataURL(file);
+    };
+
     // Gera a partir do edital (Local ou com IA)
     const handleGenerateFromEdital = async (useAI = false) => {
         setError('');
-        if (!editalText.trim()) {
-            setError('Cole o conteúdo programático do edital para continuar.');
+        if (!editalText.trim() && !editalFile) {
+            setError('Cole o conteúdo programático ou anexe um arquivo do edital para continuar.');
             return;
         }
 
@@ -246,7 +274,8 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
 
             let result;
             if (useAI) {
-                result = await generateScheduleFromEditalWithAI(editalText, options, subjects);
+                const editalInput = editalFile ? { text: editalText, fileData: editalFile } : editalText;
+                result = await generateScheduleFromEditalWithAI(editalInput, options, subjects);
             } else {
                 result = parseEditalLocally(editalText, options, subjects);
             }
@@ -1129,35 +1158,75 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                 </div>
 
                                 <div>
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                                         <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
                                             Conteúdo Programático do Edital
                                         </label>
-                                        <button
-                                            onClick={() => setEditalText(SAMPLE_EDITAL)}
-                                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                                        >
-                                            Carregar Exemplo de Edital
-                                        </button>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setEditalText(SAMPLE_EDITAL)}
+                                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                            >
+                                                Exemplo de Texto
+                                            </button>
+                                            
+                                            {/* Botão de Upload Customizado */}
+                                            <div className="relative">
+                                                <input 
+                                                    type="file" 
+                                                    id="edital-upload"
+                                                    accept="image/*, application/pdf"
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    onChange={handleFileUpload}
+                                                    title="Faça upload de PDF ou Imagem"
+                                                />
+                                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 transition-colors cursor-pointer pointer-events-none">
+                                                    <span>📎 Anexar Edital (PDF/Img)</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
+                                    
+                                    {editalFile && (
+                                        <div className="mb-3 flex items-center justify-between p-3 bg-indigo-50/80 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <div className="p-1.5 bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-300 rounded-md shrink-0">
+                                                    📎
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 truncate">{editalFile.name}</span>
+                                                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Anexado para análise da JusIA</span>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setEditalFile(null)}
+                                                className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-800 rounded-lg transition-colors"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <textarea
                                         rows={8}
                                         value={editalText}
                                         onChange={(e) => setEditalText(e.target.value)}
-                                        placeholder={`Cole o conteúdo programático aqui...\nExemplo:\nDIREITO CONSTITUCIONAL:\n1. Teoria da Constituição.\n2. Direitos Fundamentais (Art. 5º)...\n\nDIREITO PENAL:\n1. Fato Típico...`}
+                                        placeholder={`Cole o conteúdo programático aqui ou anexe o arquivo no botão acima...\nExemplo:\nDIREITO CONSTITUCIONAL:\n1. Teoria da Constituição.\n2. Direitos Fundamentais (Art. 5º)...\n\nDIREITO PENAL:\n1. Fato Típico...`}
                                         className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 leading-relaxed"
                                     />
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                                        Gere gratuitamente com o algoritmo local ou use a JusIA (Gemini) se configurada.
+                                        {editalFile 
+                                            ? "O gerador local não lê arquivos. Use a JusIA." 
+                                            : "Gere gratuitamente com o algoritmo local ou use a JusIA (Gemini) se configurada."}
                                     </div>
                                     <div className="flex gap-3 w-full sm:w-auto">
                                         <button
                                             onClick={() => handleGenerateFromEdital(false)}
-                                            disabled={loading || !editalText.trim()}
-                                            className="flex-1 sm:flex-none px-5 py-3 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
+                                            disabled={loading || !editalText.trim() || !!editalFile}
+                                            className="flex-1 sm:flex-none px-5 py-3 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:opacity-40 disabled:hover:bg-transparent rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2"
                                         >
                                             {loading && loadingMode === 'local' ? (
                                                 <>

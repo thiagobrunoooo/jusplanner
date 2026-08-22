@@ -1303,8 +1303,12 @@ export function parseEditalLocally(editalText, options = {}, existingSubjects = 
 // 3. GERADOR COM IA (GEMINI) A PARTIR DE EDITAL
 // =========================================================================
 
-export async function generateScheduleFromEditalWithAI(editalText, options = {}, existingSubjects = []) {
+export async function generateScheduleFromEditalWithAI(editalInput, options = {}, existingSubjects = []) {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+    // Support both raw string and object with { text, fileData }
+    const editalText = typeof editalInput === 'string' ? editalInput : editalInput.text;
+    const fileData = typeof editalInput === 'object' ? editalInput.fileData : null;
 
     if (!apiKey) {
         console.info("Gemini API key não configurada. Executando parser local inteligente.");
@@ -1404,10 +1408,20 @@ Use "rest" para dias de descanso e "review" para dias de revisão. ${distributio
         let responseText = null;
         let lastError = null;
 
+        const requestContent = fileData ? [
+            { text: prompt },
+            {
+                inlineData: {
+                    data: fileData.base64,
+                    mimeType: fileData.mimeType
+                }
+            }
+        ] : prompt;
+
         for (const mName of candidateModels) {
             try {
                 const model = genAI.getGenerativeModel({ model: mName });
-                const result = await model.generateContent(prompt);
+                const result = await model.generateContent(requestContent);
                 responseText = result.response.text();
                 if (responseText) break;
             } catch (err) {
