@@ -1359,7 +1359,7 @@ REGRA MATEMÁTICA DE ESFORÇO DIÁRIO E DISTRIBUIÇÃO (MUITO IMPORTANTE):
 6. TÓPICOS INDIVISÍVEIS E MASSIVOS: Se for um tópico único, mas que você sabe que é massivo (ex: "Licitações" puro), fracione anexando " - Parte 1" e " - Parte 2". NUNCA repita exatamente a mesma string de tópico no cronograma.
 
 REGRAS DE CLASSIFICAÇÃO E FIDELIDADE:
-1. FIDELIDADE ABSOLUTA: Use ESTRITAMENTE as palavras que estão no edital. Quando desmembrar os blocões descritos na regra acima, use os próprios termos separados por ponto e vírgula no edital. NUNCA invente ramificações doutrinárias invisíveis (não crie tópicos da sua própria cabeça que a banca não pediu textualmente).
+1. FIDELIDADE ABSOLUTA E ORDEM: Use ESTRITAMENTE as palavras que estão no edital. Quando desmembrar blocões, use os próprios termos separados por ponto e vírgula. NUNCA invente ramificações (não crie tópicos que a banca não pediu). Além disso, RESPEITE A ORDEM original rigorosamente: o tópico 1 de uma matéria DEVE ser estudado antes do tópico 2, e assim por diante. NUNCA embaralhe a ordem da banca.
 2. IDENTIFICAÇÃO DE MATÉRIAS: Textos em CAIXA ALTA ou destaque (ex: DIREITO CONSTITUCIONAL) representam a "Matéria" (Subjects).
 3. IDENTIFICAÇÃO DE TÓPICOS: Os itens enumerados logo após representam os "Tópicos" (Topics).
 4. CORRESPONDÊNCIA EXATA: Os nomes dos tópicos atribuídos aos dias no "schedule" DEVEM SER EXATAMENTE IDÊNTICOS aos "title" criados dentro da array de "topics". Se o nome divergir 1 letra, o sistema falhará.
