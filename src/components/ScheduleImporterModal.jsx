@@ -1239,8 +1239,8 @@ export default function ScheduleImporterModal({ isOpen, onClose }) {
                                         </button>
                                         <button
                                             onClick={() => handleGenerateFromEdital(true)}
-                                            disabled={loading || !editalText.trim()}
-                                            className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                                            disabled={loading || (!editalText.trim() && !editalFile)}
+                                            className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:from-slate-400 disabled:to-slate-500 text-white rounded-xl font-medium text-sm shadow-md transition-all flex items-center justify-center gap-2"
                                         >
                                             {loading && loadingMode === 'ai' ? (
                                                 <>
