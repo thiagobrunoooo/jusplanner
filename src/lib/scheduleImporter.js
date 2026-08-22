@@ -1372,19 +1372,27 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem textos explicativos antes ou de
 {
   "subjects": [
     {
-      "title": "Nome da Matéria (ex: Direito Constitucional)",
+      "title": "Nome da Matéria (ex: Direito Administrativo)",
       "topics": [
         {
-          "title": "Título Claro do Tópico",
-          "subtopics": ["Subtópico 1", "Subtópico 2"]
+          "title": "Princípios Administrativos",
+          "subtopics": ["Legalidade", "Impessoalidade"]
+        },
+        {
+          "title": "Licitações - Parte 1",
+          "subtopics": ["Fase Preparatória"]
+        },
+        {
+          "title": "Licitações - Parte 2",
+          "subtopics": ["Fase de Julgamento"]
         }
       ]
     }
   ],
   "schedule": {
     "week1": {
-      "Dia 01": ["Nome do Tópico 1", "Nome do Tópico 2"],
-      "Dia 02": ["Nome do Tópico 3", "Nome do Tópico 4"],
+      "Dia 01": ["Princípios Administrativos", "Licitações - Parte 1"],
+      "Dia 02": ["Licitações - Parte 2", "Outro Tópico Qualquer"],
       "Dia 07": ["rest"]
     }
   }
